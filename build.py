@@ -209,12 +209,89 @@ def get_photos():
         PHOTOS[r["id"]] = out
 
 
+
+def num_hc(v):
+    """A tester's handicap as a number (plus handicaps negative), or None."""
+    m = re.search(r"-?\d+(\.\d+)?", str(v if v is not None else ""))
+    return float(m.group(0)) if m else None
+
+
+def num_rounds(v):
+    m = re.search(r"\d+", str(v or ""))
+    return int(m.group(0)) if m else 0
+
+
+def num_price(v):
+    m = re.search(r"\d+(\.\d+)?", str(v or "").replace(",", ""))
+    return float(m.group(0)) if m else None
+
+
+def vband(video, poster, inner, cls=""):
+    """A section header with muted looping course footage behind it (poster only for reduced motion / no JS)."""
+    return (f'<div class="vband {cls}" style="--poster:url(/media/{poster})">'
+            f'<video muted loop playsinline preload="none" poster="/media/{poster}" aria-hidden="true" data-src="/media/{video}"></video>'
+            f'<div class="vband-in"><div class="wrap">{inner}</div></div></div>')
+
+
+def likeme(rows):
+    if not any(num_hc(r.get("handicap")) is not None for r in rows):
+        return ""
+    return ('<div class="likeme" data-likeme><label for="hcslider"><span>Golfers like me</span> My handicap: <output for="hcslider">18</output></label>'
+            '<input id="hcslider" type="range" min="-5" max="36" step="1" value="18" aria-describedby="likeme-help">'
+            '<div class="scale" aria-hidden="true"><span>+5</span><span>Scratch</span><span>12</span><span>24</span><span>36</span></div>'
+            '<p id="likeme-help">Slide to your handicap: reviews from testers within five shots of you jump to the front.</p></div>')
+
+
+def stats_band():
+    if not REVIEWS:
+        return ""
+    real = [r for r in REVIEWS]
+    hcs = [h for h in (num_hc(r.get("handicap")) for r in real) if h is not None]
+    tester_ids = {r.get("tester_id") or r.get("first_name") for r in real}
+    items = [(len(real), "", "reviews published"), (sum(num_rounds(r.get("rounds")) for r in real), "", "rounds played by testers"),
+             (len(TESTERS) or len(tester_ids), "", "club golfers testing")]
+    if hcs:
+        items.append((round(sum(hcs) / len(hcs), 1), "", "average tester handicap"))
+    sample = any(r.get("sample") for r in real)
+    cells = "".join(f'<div class="stat"><b data-count="{v}">{v:g}</b><span>{lab}</span></div>' for v, _, lab in items)
+    note = '<p class="small" style="margin-top:12px">Sample numbers on the preview only: the live site counts real, published reviews.</p>' if sample else ""
+    return f'<section class="statband"><div class="wrap"><div class="stats rv-up">{cells}</div>{note}</div></section>'
+
+
+def finder_data():
+    return json.dumps([{"u": url_of(r), "p": r["product"], "c": r["category"], "h": num_hc(r.get("handicap")), "o": r.get("overall"),
+                        "f": r.get("first_name"), "pr": num_price(r.get("paid"))} for r in REVIEWS if not r.get("sample")] or
+                      [{"u": url_of(r), "p": r["product"], "c": r["category"], "h": num_hc(r.get("handicap")), "o": r.get("overall"),
+                        "f": r.get("first_name"), "pr": None} for r in REVIEWS], ensure_ascii=False).replace("</", "<\\/")
+
+
+FINDER = ('<section class="s finder-sec"><div class="wrap">'
+          '<div class="shead rv-up"><div><div class="hole">{{FLAG}}<span class="eyebrow">Hole 4 · Par 3</span></div><h2>Ask the caddie</h2>'
+          '<p class="sub">Three quick questions and we\'ll point you at the kit worth reading about first.</p></div></div>'
+          '<div class="finder" data-finder>'
+          '<ol class="fsteps" aria-hidden="true"><li class="on">Your game</li><li>Your budget</li><li>Your miss</li></ol>'
+          '<fieldset class="fq on" data-q="hc"><legend>What\'s your handicap?</legend>'
+          '<button type="button" data-v="low">Under 10</button><button type="button" data-v="mid">10 to 20</button><button type="button" data-v="high">Over 20</button><button type="button" data-v="none">Don\'t have one</button></fieldset>'
+          '<fieldset class="fq" data-q="budget"><legend>What do you want to spend?</legend>'
+          '<button type="button" data-v="50">Under £50</button><button type="button" data-v="200">£50 to £200</button><button type="button" data-v="9999">Whatever it takes</button></fieldset>'
+          '<fieldset class="fq" data-q="miss"><legend>Where are you losing shots?</legend>'
+          '<button type="button" data-v="tee">Off the tee</button><button type="button" data-v="approach">Into the green</button><button type="button" data-v="short">Chipping and bunkers</button>'
+          '<button type="button" data-v="putt">On the greens</button><button type="button" data-v="weather">Wet, cold and sore feet</button><button type="button" data-v="walk">Carrying the bag</button></fieldset>'
+          '<div class="fresult" aria-live="polite"></div>'
+          '<script type="application/json" class="fdata">{{FINDERDATA}}</script>'
+          '</div></div></section>')
+
+PUTT = ('<div class="putt-wrap {cls}"><canvas class="puttgame" tabindex="0" role="application" '
+        'aria-label="Putting game. Drag back from the ball and let go to putt, or use the arrow keys to aim and set the pace and press Enter."></canvas>'
+        '<div class="putt-ui"><span class="putt-msg" aria-live="polite">Drag back from the ball and let go</span><button type="button" class="putt-reset">New putt</button></div></div>')
+
 # ---------------------------------------------------------------- pieces
 def card(r):
     pics = PHOTOS.get(r["id"]) or []
     pic = (f'<img src="{pics[0][1]}" alt="{e(r["product"])} in use, photographed by {e(r["first_name"])}" loading="lazy" decoding="async">' if pics
            else ('[Product photo]' if r.get("sample") else f'<span style="opacity:.5">{icon(r["category"], 64)}</span>'))
-    return (f'<a class="rcard" href="{url_of(r)}" data-cat="{r["category"]}"><div class="pic">{pic}{TEE}</div>'
+    hn = num_hc(r.get("handicap"))
+    return (f'<a class="rcard" href="{url_of(r)}" data-cat="{r["category"]}"{f' data-hc="{hn:g}"' if hn is not None else ""}><div class="pic">{pic}{TEE}</div>'
             f'<div class="bd"><div class="cat">{CAT[r["category"]]["plain"].upper()}</div><h3>{t(r, r["product"])}</h3>'
             f'<div class="meta"><span>Tested by {t(r, r["first_name"])}, {t(r, hcp(r["handicap"]))} handicap</span>'
             f'<span class="verdict" aria-label="Verdict {e(r["overall"])} out of 10">{CIRCLE}{e(r["overall"])}</span></div></div></a>')
@@ -365,14 +442,14 @@ def review_jsonld(r):
 # ---------------------------------------------------------------- pages
 def fill(body):
     aff = CFG.get("affiliates") or []
-    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS).replace("{{BAG}}", BAG).replace("{{CARDSCENE}}", CARDSCENE)
+    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS).replace("{{BAG}}", BAG).replace("{{CARDSCENE}}", CARDSCENE).replace("{{FINDER}}", FINDER.replace("{{FLAG}}", FLAG)).replace("{{STATS}}", stats_band()).replace("{{PUTTLG}}", PUTT.format(cls="lg")).replace("{{LATESTBAND}}", vband("aerial.mp4", "aerial.jpg", '<div class="hole">' + FLAG + '<span class="eyebrow">Hole 1 · Par 4</span></div><h2>Latest reviews</h2><a class="btn btn-line btn-sm" href="/reviews/">See all reviews<span class="gb"></span></a>'))
             .replace("{{CARDS3}}", cards(REVIEWS[:3]))
             .replace("{{KIT}}", "".join(f'<a href="/reviews/{k}/">{icon(k)}{CAT[k]["name"]}</a>' for k in CAT))
             .replace("{{TESTERS}}", testers_block())
             .replace("{{CATOPTIONS}}", "".join(f'<option value="{k}">{CAT[k]["name"]}</option>' for k in CAT))
             .replace("{{AFFILIATES}}", ("We currently earn from: " + ", ".join(e(a) for a in aff) + ".") if aff else
                      "We haven't joined any affiliate programmes yet, so nothing on the site earns us a penny at the moment. This list will be updated as soon as that changes.")
-            .replace("{{UPDATED}}", nicedate(TODAY)))
+            .replace("{{UPDATED}}", nicedate(TODAY)).replace("{{FINDERDATA}}", finder_data()))
 
 
 PAGES = []
@@ -395,16 +472,16 @@ head = lambda eyebrow, h2, sub: (f'<div class="shead"><div><div class="hole">{FL
                                  f'<p class="sub">{sub}</p></div></div>')
 add("/reviews/", "reviews", "Golf kit reviews by real club golfers | Honest Handicap",
     "Every Honest Handicap review: drivers, irons, putters, balls, grips, shoes, bags, rangefinders and clothing, each tested by a club golfer with their handicap on the card.",
-    f'<section class="s" style="padding-top:44px"><div class="wrap">{head("The full card", "All reviews", "Every verdict from every tester. Pick a category to narrow it down.")}'
-    f'{filters(None)}<div class="cards">{cards(REVIEWS)}</div></div></section>', index=True, lastmod=latest, cur="reviews")
+    vband("aerial.mp4", "aerial.jpg", f'<div class="hole">{FLAG}<span class="eyebrow">The full card</span></div><h1>All reviews</h1><p class="sub">Every verdict from every tester. Pick a category to narrow it down.</p>', "top")
+    + f'<section class="s" style="padding-top:34px"><div class="wrap">{filters(None)}{likeme(REVIEWS)}<div class="cards">{cards(REVIEWS)}</div></div></section>', index=True, lastmod=latest, cur="reviews")
 
 for k in CAT:
     rows = [r for r in REVIEWS if r["category"] == k]
     noun = CAT[k]["noun"]
     add(f"/reviews/{k}/", "reviews", f'{noun[0].upper() + noun[1:]} reviews by club golfers | Honest Handicap',
         f'Honest {noun} reviews from real club golfers, with each tester\'s handicap, home course and rounds played on the card.',
-        f'<section class="s" style="padding-top:44px"><div class="wrap">{head("The full card", noun[0].upper() + noun[1:] + " reviews", f"Every {noun} our testers have played with, scored on the same card.")}'
-        f'{filters(k)}<div class="cards">{cards(rows, k)}</div></div></section>',
+        vband("aerial.mp4", "aerial.jpg", f'<div class="hole">{FLAG}<span class="eyebrow">The full card</span></div><h1>{noun[0].upper() + noun[1:]} reviews</h1><p class="sub">Every {noun} our testers have played with, scored on the same card.</p>', "top")
+        + f'<section class="s" style="padding-top:34px"><div class="wrap">{filters(k)}{likeme(rows)}<div class="cards">{cards(rows, k)}</div></div></section>',
         index=bool(rows), lastmod=max([str(r.get("updated_at") or r["published_at"])[:10] for r in rows] or [str(TODAY)]), cur="reviews")
 
 for r in REVIEWS:
@@ -443,7 +520,7 @@ def render(p, styles, scripts, body=None):
         out = out.replace("{{CUR_" + k + "}}", ' aria-current="page"' if p["cur"] == k else "")
     rep = {"TITLE": e(p["title"]), "DESC": e(p["desc"]), "ROBOTS": robots, "CANONICAL": canon, "OGTYPE": p["ogtype"], "OGTITLE": e(p["title"]),
            "OGIMAGE": img, "ROOT": "/", "STYLES": styles, "JSONLD": ld, "PAGE": p["page"], "LOGO": LOGO, "LOGOFOOT": LOGOFOOT,
-           "BODY": body if body is not None else p["body"], "GRASS": GRASS, "SCRIPTS": scripts, "YEAR": str(TODAY.year)}
+           "BODY": body if body is not None else p["body"], "GRASS": GRASS, "PUTTSM": PUTT.format(cls="sm"), "SCRIPTS": scripts, "YEAR": str(TODAY.year)}
     for k, v in rep.items():
         out = out.replace("{{" + k + "}}", v)
     left = re.findall(r"\{\{[A-Z_:0-9a-z-]+\}\}", out)
@@ -477,6 +554,7 @@ def build_site():
         dest = os.path.join(OUT, "404.html") if p["path"] == "/404.html" else os.path.join(OUT, p["path"].strip("/"), "index.html")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         open(dest, "w").write(render(p, styles, scripts))
+    shutil.copytree(os.path.join(HERE, "media"), os.path.join(OUT, "media"))
     shutil.copy(os.path.join(BRAND, "icon.svg"), os.path.join(OUT, "favicon.svg"))
     for f in ("og.png", "apple-touch-icon.png"):
         shutil.copy(os.path.join(BRAND, f), os.path.join(OUT, f))
@@ -521,6 +599,7 @@ def build_preview():
     out = render(home, f"<style>{CSS}</style>", f"<script>{JS}</script>{ROUTER}", body=body)
     out = out.replace('href="/favicon.svg"', 'href="data:image/svg+xml;base64,' + base64.b64encode(ICON.encode()).decode() + '"')
     out = re.sub(r'(href)="/(?!/)', r'\1="#/', out)  # site links become #/ addresses
+    out = out.replace('"/media/', '"media/').replace('(/media/', '(media/')  # media sits beside the preview file
     out = out.replace('href="#/favicon', 'href="/favicon')
     open(os.path.join(HERE, "preview.html"), "w").write(out)
     print(f"built preview.html: {len(PAGES)} pages, {len(REVIEWS)} reviews, {len(out) // 1024} KB")

@@ -201,6 +201,19 @@
       var ball = svg.querySelector('#ball'), shadow = svg.querySelector('#shadow'), club = svg.querySelector('#club');
       var ripple = svg.querySelector('#ripple'), inhole = svg.querySelector('#inhole'), yds = svg.querySelector('#yds');
       var hint = el.querySelector('.scroll-hint');
+      var layers = [].slice.call(svg.querySelectorAll('.px')), mx = 0, my = 0, lastP = 0;
+      if (matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        el.addEventListener('mousemove', function (ev) {
+          var r = svg.getBoundingClientRect(); mx = (ev.clientX - r.left) / r.width - .5; my = (ev.clientY - r.top) / r.height - .5; paint();
+        });
+        el.addEventListener('mouseleave', function () { mx = my = 0; paint(); });
+      }
+      function paint() {
+        layers.forEach(function (g) {
+          var d = +g.getAttribute('data-depth');
+          g.setAttribute('transform', 'translate(' + (-mx * 26 * d - lastP * 60 * d).toFixed(1) + ' ' + (-my * 14 * d + lastP * 30 * d).toFixed(1) + ')');
+        });
+      }
       // reveal the dashed flight trail with a mask that grows along the same path
       var NS = 'http://www.w3.org/2000/svg';
       var mask = document.createElementNS(NS, 'mask'); mask.id = 'trailmask'; mask.setAttribute('maskUnits', 'userSpaceOnUse');
@@ -232,6 +245,7 @@
           inhole.style.opacity = seg(p, .83, .9);
           yds.textContent = Math.round(168 * s) + ' yds';
           if (hint) hint.style.opacity = 1 - seg(p, 0, .08);
+          lastP = p; paint();
         }
       };
     },
@@ -278,6 +292,40 @@
       };
     },
 
+    swing: function (el) {
+      if (reduce) return null;
+      var cv = el.querySelector('.swing-cv'), ctx = cv && cv.getContext('2d'); if (!ctx) return null;
+      var n = +el.getAttribute('data-frames'), small = innerWidth < 700;
+      var base = el.getAttribute(small ? 'data-src-sm' : 'data-src'), imgs = [], loaded = 0, started = false, cur = -1, lines = [].slice.call(el.querySelectorAll('.swing-copy p'));
+      function pad(i) { return ('00' + (i + 1)).slice(-3); }
+      function load() {
+        if (started) return; started = true;
+        // the strike frames first, then fill the gaps, so scrubbing never waits long
+        var order = []; for (var step = 16; step >= 1; step = Math.floor(step / 2)) { for (var i = 0; i < n; i += step) if (order.indexOf(i) === -1) order.push(i); if (step === 1) break; }
+        order.forEach(function (i) { var im = new Image(); im.decoding = 'async'; im.onload = function () { loaded++; if (i === 0 || cur === -1) draw(i); }; im.src = base + pad(i) + '.webp'; imgs[i] = im; });
+      }
+      function size() { var r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); cur = -1; }
+      function nearest(i) { for (var k = 0; k < n; k++) { var a = imgs[i - k], b = imgs[i + k]; if (a && a.complete && a.naturalWidth) return a; if (b && b.complete && b.naturalWidth) return b; } return null; }
+      function draw(i) {
+        var im = nearest(i); if (!im) return;
+        var cw = cv.width, ch = cv.height, s = Math.max(cw / im.naturalWidth, ch / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s;
+        // keep the golfer in shot on narrow screens
+        var ff = small ? .5 : .39, at = small ? .5 : .64, x = Math.min(0, Math.max(cw - w, cw * at - ff * w));
+        ctx.drawImage(im, x, (ch - h) / 2, w, h);
+        cv.classList.add('ready'); cur = i;
+      }
+      return {
+        measure: function () { size(); },
+        set: function (p) {
+          var r = el.getBoundingClientRect();
+          if (!started && r.top < innerHeight * 2.5 && r.bottom > -innerHeight) load();
+          if (!started) return;
+          var i = Math.round(easeInOut(seg(p, .05, .95)) * (n - 1)); if (i !== cur) draw(i);
+          lines.forEach(function (l) { l.classList.toggle('on', p >= +l.getAttribute('data-from') && p < +l.getAttribute('data-to')); });
+        }
+      };
+    },
+
     bars: function (el) {
       var fills = [].slice.call(el.querySelectorAll('.fill'));
       return { set: function (p) { fills.forEach(function (f, i) { f.style.setProperty('--f', easeOut(seg(p, i * .1, .45 + i * .1)).toFixed(3)); }); } };
@@ -292,13 +340,13 @@
   var scenes = [].slice.call(document.querySelectorAll('[data-scene]')).map(function (el) {
     var make = SCENES[el.getAttribute('data-scene')], s = make && make(el);
     if (!s) return null;
-    s.el = el; s.pin = el.hasAttribute('data-pin');
+    s.el = el; s.pin = el.hasAttribute('data-pin'); s.pinAll = el.hasAttribute('data-pin-all');
     return s;
   }).filter(Boolean);
 
   function progress(s) {
     var r = s.el.getBoundingClientRect();
-    if (s.pin && pinMQ.matches) {
+    if ((s.pin && pinMQ.matches) || s.pinAll) {
       var total = s.el.offsetHeight - (innerHeight - hh);
       return total > 0 ? clamp((hh - r.top) / total) : 1;
     }
@@ -367,4 +415,201 @@
   if (pinMQ.addEventListener) pinMQ.addEventListener('change', layout);
   addEventListener('load', layout);
   layout();
+})();
+
+/* ===== round two: videos, stats, golfers like me, the caddie, putting, cursor and card tilt ===== */
+(function () {
+  'use strict';
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  var fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+  /* looping course footage: only loads when nearly on screen, pauses when off it, never with reduced motion or data saver */
+  var vids = [].slice.call(document.querySelectorAll('video[data-src]'));
+  if (!reduce && !saveData && 'IntersectionObserver' in window) {
+    var vio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var v = e.target;
+        if (e.isIntersecting) {
+          if (!v.src) { v.src = v.getAttribute('data-src'); v.load(); }
+          var pr = v.play(); if (pr && pr.then) pr.then(function () { v.classList.add('playing'); }).catch(function () {});
+        } else if (v.src) v.pause();
+      });
+    }, { rootMargin: '200px 0px' });
+    vids.forEach(function (v) { vio.observe(v); });
+  }
+
+  /* live stats count up once, when they come into view */
+  var counts = [].slice.call(document.querySelectorAll('[data-count]'));
+  if (counts.length && !reduce && 'IntersectionObserver' in window) {
+    counts.forEach(function (c) { c.textContent = '0'; });
+    var cio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return; cio.unobserve(e.target);
+        var el = e.target, to = +el.getAttribute('data-count'), dec = String(to).indexOf('.') > -1 ? 1 : 0, t0 = performance.now();
+        (function tick(t) { var k = Math.min(1, (t - t0) / 1400), v = to * (1 - Math.pow(1 - k, 3)); el.textContent = v.toFixed(dec); if (k < 1) requestAnimationFrame(tick); })(t0);
+      });
+    }, { threshold: .6 });
+    counts.forEach(function (c) { cio.observe(c); });
+  }
+
+  /* golfers like me: reviews from testers near your handicap come first */
+  [].slice.call(document.querySelectorAll('[data-likeme]')).forEach(function (box) {
+    var input = box.querySelector('input'), out = box.querySelector('output'), wrap = box.parentNode.querySelector('.cards');
+    if (!input || !wrap) return;
+    var cards = [].slice.call(wrap.querySelectorAll('.rcard'));
+    var saved = store.get('hh-handicap'); if (saved !== null && !isNaN(+saved)) input.value = saved;
+    function fmt(v) { return v < 0 ? '+' + (-v) : v === 0 ? 'Scratch' : String(v); }
+    function apply() {
+      var me = +input.value; out.textContent = fmt(me); store.set('hh-handicap', me);
+      cards.slice().sort(function (a, b) {
+        var ha = a.hasAttribute('data-hc') ? Math.abs(+a.getAttribute('data-hc') - me) : 99, hb = b.hasAttribute('data-hc') ? Math.abs(+b.getAttribute('data-hc') - me) : 99;
+        return ha - hb;
+      }).forEach(function (c, i) {
+        c.style.order = i;
+        var near = c.hasAttribute('data-hc') && Math.abs(+c.getAttribute('data-hc') - me) <= 5, tag = c.querySelector('.near');
+        if (near && !tag) { tag = document.createElement('span'); tag.className = 'near'; tag.textContent = 'Near your game'; c.appendChild(tag); }
+        if (!near && tag) tag.remove();
+      });
+    }
+    input.addEventListener('input', apply); apply();
+  });
+
+  /* the caddie: three taps to the categories and reviews worth reading first */
+  [].slice.call(document.querySelectorAll('[data-finder]')).forEach(function (f) {
+    var data = []; try { data = JSON.parse(f.querySelector('.fdata').textContent); } catch (e) {}
+    var qs = [].slice.call(f.querySelectorAll('.fq')), steps = [].slice.call(f.querySelectorAll('.fsteps li')), res = f.querySelector('.fresult'), ans = {};
+    var NAMES = { drivers: 'Drivers & woods', irons: 'Irons & hybrids', wedges: 'Wedges', putters: 'Putters', balls: 'Balls', grips: 'Grips', shoes: 'Shoes', bags: 'Bags & trolleys', tech: 'Rangefinders & tech', clothing: 'Clothing' };
+    var MISS = { tee: ['drivers', 'balls'], approach: ['irons', 'tech'], short: ['wedges', 'balls'], putt: ['putters', 'grips'], weather: ['shoes', 'clothing', 'grips'], walk: ['bags', 'shoes'] };
+    var MID = { low: 6, mid: 15, high: 25, none: 30 };
+    var LINE = { tee: 'Fairways first.', approach: 'More greens in regulation.', short: 'Get up and down.', putt: 'Fewer three-putts.', weather: 'Dry, warm and comfortable.', walk: 'Fresher legs on the back nine.' };
+    function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function show(i) {
+      qs.forEach(function (q, k) { q.classList.toggle('on', k === i); });
+      steps.forEach(function (s, k) { s.classList.toggle('on', k === i); s.classList.toggle('done', k < i); });
+      if (qs[i]) { var b = qs[i].querySelector('button'); if (b && document.activeElement && f.contains(document.activeElement)) b.focus(); }
+    }
+    function result() {
+      qs.forEach(function (q) { q.classList.remove('on'); }); steps.forEach(function (s) { s.classList.remove('on'); s.classList.add('done'); });
+      var cats = MISS[ans.miss] || [], mid = MID[ans.hc], budget = +ans.budget;
+      var picks = data.filter(function (r) { return cats.indexOf(r.c) > -1 && (r.pr == null || r.pr <= budget); })
+        .sort(function (a, b) { return (Math.abs((a.h == null ? 99 : a.h) - mid) - Math.abs((b.h == null ? 99 : b.h) - mid)) || ((b.o || 0) - (a.o || 0)); }).slice(0, 4);
+      res.innerHTML = '<h3>' + esc(LINE[ans.miss] || 'Here you go.') + '</h3><p>Start with these categories:</p><div class="fcats">' +
+        cats.map(function (c) { return '<a href="/reviews/' + c + '/">' + esc(NAMES[c]) + '</a>'; }).join('') + '</div>' +
+        (picks.length ? '<p>Reviews from testers nearest your game' + (budget < 9999 ? ', within your budget' : '') + ':</p><ul>' + picks.map(function (r) {
+          return '<li><a href="' + esc(r.u) + '"><span>' + esc(r.p) + ' <small>· tested by ' + esc(r.f) + (r.h != null ? ', ' + (r.h < 0 ? '+' + (-r.h) : r.h) : '') + '</small></span><b>' + esc(r.o) + '</b></a></li>';
+        }).join('') + '</ul>' : '<p>No reviews in these categories yet: our testers are on it. <a href="/join/">Fancy writing the first one?</a></p>') +
+        '<button type="button" class="again">Start again</button>';
+      res.querySelector('.again').addEventListener('click', function () { ans = {}; res.innerHTML = ''; qs.forEach(function (q) { [].forEach.call(q.querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', 'false'); }); }); show(0); });
+      if (window.HHobserve) window.HHobserve(res);
+    }
+    qs.forEach(function (q, i) {
+      [].forEach.call(q.querySelectorAll('button'), function (b) {
+        b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', function () {
+          [].forEach.call(q.querySelectorAll('button'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          ans[q.getAttribute('data-q')] = b.getAttribute('data-v');
+          if (i < qs.length - 1) setTimeout(function () { show(i + 1); }, reduce ? 0 : 180); else result();
+        });
+      });
+    });
+    show(0);
+  });
+
+  /* putting: drag back from the ball and let go. Par 2. Keyboard: arrows aim and set pace, Enter putts */
+  [].slice.call(document.querySelectorAll('.puttgame')).forEach(function (cv) {
+    var wrap = cv.parentNode, msg = wrap.querySelector('.putt-msg'), reset = wrap.querySelector('.putt-reset'), ctx = cv.getContext('2d');
+    var W, H, d = Math.min(devicePixelRatio || 1, 2), ball, cup, vel = { x: 0, y: 0 }, strokes = 0, drag = null, moving = false, done = false, aim = { a: 0, p: .5 }, kb = false, slope;
+    function size() { var r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+    function newHole() {
+      size(); strokes = 0; done = false; moving = false; vel = { x: 0, y: 0 };
+      ball = { x: W * (.08 + Math.random() * .1), y: H * (.3 + Math.random() * .4) };
+      cup = { x: W * (.72 + Math.random() * .18), y: H * (.25 + Math.random() * .5) };
+      slope = { x: (Math.random() - .5) * .012, y: (Math.random() - .5) * .03 };
+      aim.a = Math.atan2(cup.y - ball.y, cup.x - ball.x); aim.p = .5;
+      say('Drag back from the ball and let go'); drawFrame();
+    }
+    function say(t) { if (msg) msg.textContent = t; }
+    function drawFrame() {
+      ctx.clearRect(0, 0, W, H);
+      for (var x = -H, n = 0; x < W; x += 36, n++) { ctx.fillStyle = n % 2 ? '#2f7d45' : '#37904f'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 18, 0); ctx.lineTo(x + 18 + H * .4, H); ctx.lineTo(x + H * .4, H); ctx.fill(); }
+      ctx.strokeStyle = '#ffffff40'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, W - 2, H - 2);
+      ctx.fillStyle = '#0b2a17'; ctx.beginPath(); ctx.ellipse(cup.x, cup.y, 9, 7, 0, 0, Math.PI * 2); ctx.fill();
+      if (!done) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cup.x, cup.y); ctx.lineTo(cup.x, cup.y - 46); ctx.stroke();
+        ctx.fillStyle = '#D21F25'; ctx.beginPath(); ctx.moveTo(cup.x + 1, cup.y - 46); ctx.lineTo(cup.x + 22, cup.y - 40); ctx.lineTo(cup.x + 1, cup.y - 34); ctx.fill(); }
+      var v = drag ? { x: drag.sx - drag.x, y: drag.sy - drag.y } : kb && !moving && !done ? { x: Math.cos(aim.a) * aim.p * 140, y: Math.sin(aim.a) * aim.p * 140 } : null;
+      if (v && !moving) {
+        var len = Math.min(140, Math.hypot(v.x, v.y)), ang = Math.atan2(v.y, v.x);
+        ctx.setLineDash([4, 6]); ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ball.x, ball.y);
+        ctx.lineTo(ball.x + Math.cos(ang) * len * 1.6, ball.y + Math.sin(ang) * len * 1.6); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#ffffff33'; ctx.fillRect(10, H - 16, 100, 6); ctx.fillStyle = len > 110 ? '#D21F25' : '#fff'; ctx.fillRect(10, H - 16, len / 140 * 100, 6);
+      }
+      if (!done || moving) { ctx.fillStyle = '#00000040'; ctx.beginPath(); ctx.ellipse(ball.x + 2, ball.y + 3, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#1B1B1B'; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.fillStyle = '#fff'; ctx.font = '700 13px Arial, sans-serif'; ctx.fillText('Strokes: ' + strokes + '   Par 2', W - 130, 22);
+    }
+    function putt(vx, vy) {
+      var len = Math.min(140, Math.hypot(vx, vy)); if (len < 6) return;
+      var k = len / Math.hypot(vx, vy) * .12; vel = { x: vx * k, y: vy * k }; strokes++; moving = true; say('Rolling…'); loop();
+    }
+    function loop() {
+      if (!moving) return;
+      ball.x += vel.x; ball.y += vel.y; var bk = Math.min(1, Math.hypot(vel.x, vel.y) / 2); vel.x = vel.x * .968 + slope.x * bk; vel.y = vel.y * .968 + slope.y * bk; // break fades as it slows, so it always stops
+      if (ball.x < 7 || ball.x > W - 7) { vel.x *= -.6; ball.x = Math.max(7, Math.min(W - 7, ball.x)); }
+      if (ball.y < 7 || ball.y > H - 7) { vel.y *= -.6; ball.y = Math.max(7, Math.min(H - 7, ball.y)); }
+      var dx = cup.x - ball.x, dy = cup.y - ball.y, dist = Math.hypot(dx, dy), sp = Math.hypot(vel.x, vel.y);
+      if (dist < 8 && sp < 4.2) { moving = false; done = true; ball.x = cup.x; ball.y = cup.y;
+        var names = { 1: 'Holed in one, you jammy so-and-so', 2: 'Two putts. Par. Respectable', 3: 'Three-putt. Happens to the best of us' };
+        say((names[strokes] || strokes + ' putts. Maybe test a new putter?') + '.'); drawFrame(); return; }
+      if (dist < 9 && sp >= 4.2) { var nx = -dx / dist, ny = -dy / dist; vel.x += nx * .9; vel.y += ny * .9; } // lip-out
+      if (sp < .09) { moving = false; vel = { x: 0, y: 0 }; aim.a = Math.atan2(cup.y - ball.y, cup.x - ball.x); say(strokes === 1 ? 'Not bad. Knock it in.' : 'Keep going.'); drawFrame(); return; }
+      drawFrame(); requestAnimationFrame(loop);
+    }
+    function pos(ev) { var r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+    cv.addEventListener('pointerdown', function (ev) { if (moving || done) return; kb = false; var p = pos(ev); drag = { sx: p.x, sy: p.y, x: p.x, y: p.y }; cv.setPointerCapture(ev.pointerId); });
+    cv.addEventListener('pointermove', function (ev) { if (!drag) return; var p = pos(ev); drag.x = p.x; drag.y = p.y; drawFrame(); });
+    cv.addEventListener('pointerup', function () { if (!drag) return; var v = { x: drag.sx - drag.x, y: drag.sy - drag.y }; drag = null; putt(v.x, v.y); });
+    cv.addEventListener('pointercancel', function () { drag = null; drawFrame(); });
+    cv.addEventListener('keydown', function (ev) {
+      if (moving) return; var k = ev.key;
+      if (done && (k === 'Enter' || k === ' ')) { ev.preventDefault(); newHole(); return; }
+      if (k === 'ArrowLeft') aim.a -= .06; else if (k === 'ArrowRight') aim.a += .06;
+      else if (k === 'ArrowUp') aim.p = Math.min(1, aim.p + .05); else if (k === 'ArrowDown') aim.p = Math.max(.05, aim.p - .05);
+      else if (k === 'Enter' || k === ' ') { ev.preventDefault(); kb = false; putt(Math.cos(aim.a) * aim.p * 140, Math.sin(aim.a) * aim.p * 140); return; }
+      else return;
+      ev.preventDefault(); kb = true; drawFrame();
+    });
+    if (reset) reset.addEventListener('click', newHole);
+    var started = false;
+    function init() { if (started) return; started = true; newHole(); }
+    if ('IntersectionObserver' in window) { var pio = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { init(); pio.disconnect(); } }); pio.observe(cv); } else init();
+    addEventListener('resize', function () { if (started && !moving) { var bx = ball.x / W, by = ball.y / H, cx = cup.x / W, cy = cup.y / H; size(); ball.x = bx * W; ball.y = by * H; cup.x = cx * W; cup.y = cy * H; drawFrame(); } });
+  });
+
+  /* desktop only: a golf ball follows the pointer, cards tilt toward it */
+  if (fine && !reduce) {
+    var b = document.createElement('div'); b.className = 'cball'; document.body.appendChild(b);
+    var trail = []; for (var i = 0; i < 6; i++) { var t = document.createElement('div'); t.className = 'ctrail'; t.style.opacity = (.5 - i * .07).toFixed(2); document.body.appendChild(t); trail.push({ el: t, x: 0, y: 0 }); }
+    var tx = -100, ty = -100, bx = -100, by = -100, shown = false;
+    addEventListener('pointermove', function (ev) { tx = ev.clientX; ty = ev.clientY; if (!shown) { bx = tx; by = ty; shown = true; } }, { passive: true });
+    document.addEventListener('pointerover', function (ev) { b.classList.toggle('big', !!(ev.target.closest && ev.target.closest('a,button,input,select,textarea,canvas'))); });
+    document.addEventListener('mouseleave', function () { tx = ty = -100; });
+    (function follow() {
+      bx += (tx - bx) * .28; by += (ty - by) * .28; b.style.transform = 'translate(' + bx + 'px,' + by + 'px)';
+      var px = bx, py = by;
+      trail.forEach(function (t) { t.x += (px - t.x) * .35; t.y += (py - t.y) * .35; t.el.style.transform = 'translate(' + t.x + 'px,' + t.y + 'px)'; px = t.x; py = t.y; });
+      requestAnimationFrame(follow);
+    })();
+    [].slice.call(document.querySelectorAll('.rcard, .tester, .kit a, .cs-card')).forEach(function (c) {
+      c.classList.add('tilt'); var sh = document.createElement('span'); sh.className = 'sheen'; sh.setAttribute('aria-hidden', 'true'); c.appendChild(sh);
+      var max = c.classList.contains('cs-card') ? 4 : 9;
+      c.addEventListener('pointermove', function (ev) {
+        var r = c.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height;
+        c.style.transform = 'perspective(900px) rotateX(' + ((.5 - y) * max).toFixed(2) + 'deg) rotateY(' + ((x - .5) * max).toFixed(2) + 'deg) translateY(-4px)';
+        c.style.setProperty('--sx', (x * 100).toFixed(1) + '%'); c.style.setProperty('--sy', (y * 100).toFixed(1) + '%');
+      });
+      c.addEventListener('pointerleave', function () { c.style.transform = ''; });
+    });
+  }
 })();

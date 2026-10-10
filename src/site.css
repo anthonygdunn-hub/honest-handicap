@@ -363,6 +363,109 @@ footer .legal{flex:1 1 100%;font-family:var(--mono);font-size:12.5px;color:#AAAA
 .rail .ball{position:absolute;left:4px;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff 0 45%,#ddd 75%,#aaa);box-shadow:0 0 0 1.5px #1B1B1B;top:var(--y,0px)}
 .rail .pin{position:absolute;left:4px;bottom:-6px;width:20px;height:28px}
 
+/* ===== round two: video, parallax, cursor, games ===== */
+@media (prefers-reduced-motion:no-preference){
+  .js .scene[data-pin-all]{height:var(--len,200vh)}
+  .js .scene[data-pin-all]>.scene-pin{position:sticky;top:var(--hh,76px);height:calc(100vh - var(--hh,76px))}
+}
+/* scroll-scrubbed swing */
+.scene-swing{background:#0d1a12}
+.swing-pin{height:min(80vh,640px);overflow:hidden;position:relative;color:#fff}
+.swing-still,.swing-cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.js .swing-cv.ready+.swing-shade{opacity:1}
+.swing-shade{position:absolute;inset:0;background:linear-gradient(90deg,#000a 0%,#0006 40%,#0000 70%),linear-gradient(0deg,#000a,#0000 40%)}
+.swing-copy{position:absolute;left:0;right:0;bottom:12%;display:grid}
+.swing-copy p{grid-area:1/1;max-width:560px;font-size:clamp(20px,2.4vw,28px);line-height:1.3;color:#fff;text-shadow:0 2px 12px #0008;opacity:0;transform:translateY(16px);transition:opacity .35s,transform .35s}
+.swing-copy p span{display:block;font-family:var(--head);font-weight:600;font-size:clamp(40px,6vw,76px);line-height:1;margin-bottom:8px}
+.swing-copy p.on{opacity:1;transform:none}
+.nojs .swing-copy p:last-child{opacity:1;transform:none}
+@media (max-width:700px){.swing-shade{background:linear-gradient(0deg,#000c 0%,#0008 35%,#0000 60%)}}
+.swing-credit{position:absolute;right:12px;bottom:8px;font-size:11px;color:#fffa;margin:0}
+@media (prefers-reduced-motion:reduce){.swing-cv{display:none}.swing-copy p:last-child{opacity:1;transform:none}}
+
+/* video section bands */
+.vband{position:relative;overflow:hidden;background:#0d1a12 var(--poster) center/cover;color:#fff;min-height:300px;display:flex;align-items:flex-end}
+.vband video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s}
+.vband video.playing{opacity:1}
+.vband::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#002B18e6 0%,#002B1899 45%,#0000 100%)}
+.vband-in{position:relative;z-index:1;width:100%;padding:60px 0 34px}
+.vband-in .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px}
+.vband-in .wrap>.hole{flex:1 1 100%;display:flex;align-items:center;gap:12px;margin-bottom:-4px}
+.vband h1,.vband h2{color:#fff;font-size:clamp(34px,4.6vw,56px);flex:1 1 auto}
+.vband .eyebrow{color:#fff}
+.vband .sub{color:#E8EFEA;flex:1 1 100%}
+.vband .btn-line{border-color:#fff;color:#fff}.vband .btn-line:hover{background:#fff;color:var(--txt)}
+.vband.top{min-height:360px}
+.vband .hole svg line{stroke:#fff}
+.join video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;mix-blend-mode:multiply;opacity:0;transition:opacity .8s;pointer-events:none}
+.join video.playing{opacity:.55}
+.join>*:not(video){position:relative}
+
+/* stats band */
+.statband{background:var(--bar);color:#fff;padding:40px 0}
+.statband .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px}
+.statband .stat{border-left:4px solid var(--pink);padding:4px 0 4px 16px}
+.statband .stat b{display:block;font-family:var(--head);font-size:clamp(40px,5vw,60px);line-height:1;font-weight:600}
+.statband .stat span{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#CFE0D4}
+.statband .small{color:#CFE0D4}
+
+/* golfers like me */
+.likeme{margin:-8px 0 30px;padding:18px 20px;border:1.5px solid var(--line);border-radius:6px;background:var(--card)}
+.likeme label{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-weight:700;font-size:18px}
+.likeme label span{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan)}
+.likeme output{font-family:var(--head);font-size:30px;color:var(--pink);min-width:2.5ch}
+.likeme input[type=range]{width:100%;margin:10px 0 2px;accent-color:var(--pink);height:28px}
+.likeme .scale{display:flex;justify-content:space-between;font-size:12px;color:var(--txt3)}
+.likeme p{font-size:14px;color:var(--txt2);margin-top:6px}
+.rcard .near{position:absolute;top:12px;left:12px;background:var(--pink);color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 9px;border-radius:3px;z-index:2}
+.rcard{position:relative}
+.cards .rcard{transition:transform .25s,border-color .25s,order 0s}
+
+/* the caddie */
+.finder{background:#fff;border:3px solid var(--cyan);border-radius:6px;padding:26px;display:flex;flex-direction:column;gap:18px}
+.fsteps{display:flex;gap:8px;list-style:none;margin:0;padding:0;counter-reset:f}
+.fsteps li{flex:1;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);border-top:4px solid var(--line);padding-top:8px}
+.fsteps li.on,.fsteps li.done{color:var(--txt);border-top-color:var(--pink)}
+.fq{border:0;margin:0;padding:0;display:none;flex-wrap:wrap;gap:10px}
+.fq.on{display:flex}
+.nojs .fq{display:flex}
+.fq legend{font-family:var(--head);font-size:clamp(24px,3vw,32px);font-weight:600;margin-bottom:12px;width:100%}
+.fq button{font:inherit;font-weight:700;font-size:16px;padding:14px 18px;min-height:48px;border-radius:4px;border:1.5px solid var(--cyan);background:#fff;color:var(--txt);cursor:pointer;transition:background .15s,transform .15s}
+.fq button:hover{background:#1563A514}
+.fq button[aria-pressed=true]{background:var(--cyan);color:#fff}
+.fresult:empty{display:none}
+.fresult h3{font-size:26px;margin-bottom:6px}
+.fresult .fcats{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.fresult .fcats a{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--cyan);border-radius:4px;text-decoration:none;font-weight:700;color:var(--txt)}
+.fresult ul{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:8px}
+.fresult li a{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--card);border-radius:4px;text-decoration:none;color:var(--txt)}
+.fresult li b{font-family:var(--head);color:var(--pink);font-size:22px}
+.fresult .again{margin-top:10px;background:none;border:0;color:var(--cyan);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px 0}
+
+/* putting game */
+.putt-wrap{position:relative;width:100%;max-width:720px}
+.puttgame{display:block;width:100%;border-radius:8px;touch-action:none;cursor:crosshair;background:#2f7d45}
+.puttgame:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.putt-wrap.lg .puttgame{height:260px}
+.putt-wrap.sm .puttgame{height:150px}
+.putt-ui{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px;font-size:14px}
+.putt-reset{background:none;border:1.5px solid currentColor;color:inherit;border-radius:4px;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer}
+.nineteen-green{flex:1 1 100%;display:flex;flex-direction:column;gap:10px}
+.nineteen-green p{color:#E8EFEA;font-size:15px}
+.nineteen-green .putt-wrap{max-width:none}
+.nineteen-green .putt-ui{color:#E8EFEA}
+.lost .putt-wrap{margin:6px auto 10px}
+
+/* desktop: golf-ball cursor follower and tilting cards */
+.cball{position:fixed;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;pointer-events:none;z-index:90;
+  background:radial-gradient(circle at 35% 35%,#fff 0 45%,#e2e2e2 70%,#aaa);box-shadow:0 0 0 1.5px #1B1B1B,0 3px 6px #0003;transition:width .2s,height .2s,margin .2s}
+.cball.big{width:30px;height:30px;margin:-15px 0 0 -15px}
+.ctrail{position:fixed;left:0;top:0;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--cyan);pointer-events:none;z-index:89}
+.tilt{transform-style:preserve-3d;will-change:transform}
+.tilt .sheen{position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--sx,50%) var(--sy,50%),#ffffff59,#fff0 45%);opacity:0;transition:opacity .2s;z-index:3}
+.tilt:hover .sheen{opacity:1}
+@media (prefers-reduced-motion:reduce){.cball,.ctrail{display:none}}
+
 @media (prefers-reduced-motion:reduce){
   .js .hw{clip-path:none}
   .js .cs-row .fill,.js .bars[data-scene] .fill{width:var(--w)}

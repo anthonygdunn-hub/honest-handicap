@@ -19,8 +19,10 @@
 <radialGradient id="gball" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#eeeeee"/><stop offset="1" stop-color="#b8b8b8"/></radialGradient>
 </defs>
 <rect width="600" height="420" fill="url(#flood)"/>
-<g stroke="#BBBBBB" stroke-width="3"><line x1="540" y1="40" x2="540" y2="210"/><line x1="60" y1="70" x2="60" y2="230"/></g>
-<rect x="526" y="30" width="28" height="12" rx="2" fill="#DDDDDD"/><rect x="47" y="60" width="26" height="11" rx="2" fill="#DDDDDD" opacity=".7"/>
+<g class="px" data-depth="1" fill="#fff" stroke="#E3E8EE" stroke-width="1.5"><path d="M120 92 a18 18 0 0 1 34 -8 a22 22 0 0 1 40 10 a14 14 0 0 1 -2 28 h-70 a15 15 0 0 1 -2 -30 z"/><path d="M380 62 a14 14 0 0 1 26 -6 a18 18 0 0 1 32 8 a11 11 0 0 1 -2 22 h-54 a12 12 0 0 1 -2 -24 z" opacity=".8"/></g>
+<g class="px" data-depth=".55" fill="#C9D6CC"><path d="M0 300 C30 250 50 270 70 240 C90 270 110 250 130 262 C150 236 175 258 200 248 C230 262 250 238 280 254 C300 240 330 262 360 246 C390 258 420 236 450 250 C480 236 510 258 540 244 C565 254 585 240 600 248 L600 290 L0 320 Z"/></g>
+<g class="px" data-depth=".3"><g stroke="#BBBBBB" stroke-width="3"><line x1="540" y1="40" x2="540" y2="210"/><line x1="60" y1="70" x2="60" y2="230"/></g>
+<rect x="526" y="30" width="28" height="12" rx="2" fill="#DDDDDD"/><rect x="47" y="60" width="26" height="11" rx="2" fill="#DDDDDD" opacity=".7"/></g>
 <path d="M0 420 L0 330 C120 300 210 330 300 300 C390 270 450 300 600 262 L600 420 Z" fill="url(#stripes)" stroke="#004225" stroke-width="2"/>
 <path d="M300 340 C318 324 360 326 372 340 C364 354 316 356 300 340 Z" fill="#E9E2C8"/>
 <ellipse cx="468" cy="286" rx="96" ry="24" fill="#0F6B3E" stroke="#FFFFFF" stroke-width="2"/>
@@ -44,19 +46,30 @@
 </div>
 </div>
 </section>
-<div class="mow" aria-hidden="true"></div>
-
-<section class="s">
-<div class="wrap">
-<div class="shead rv-up">
-<div><div class="hole">{{FLAG}}<span class="eyebrow">Hole 1 · Par 4</span></div><h2>Latest reviews</h2></div>
-<a class="btn btn-line btn-sm" href="/reviews/">See all reviews<span class="gb"></span></a>
+<section class="scene scene-swing" data-scene="swing" data-pin-all style="--len:260vh" data-frames="69" data-src="/media/swing/f" data-src-sm="/media/swing-sm/f">
+<div class="scene-pin swing-pin">
+<img class="swing-still" src="/media/swing-end.jpg" alt="A club golfer in a white polo shirt finishing his drive on a tree-lined tee" loading="lazy" decoding="async">
+<canvas class="swing-cv" aria-hidden="true"></canvas>
+<div class="swing-shade" aria-hidden="true"></div>
+<div class="swing-copy wrap" aria-hidden="true">
+<p data-from="0" data-to=".24"><span>Address.</span> Every tester starts with the kit in their own bag.</p>
+<p data-from=".24" data-to=".5"><span>Backswing.</span> Three rounds minimum. No range-mat heroics.</p>
+<p data-from=".5" data-to=".76"><span>Strike.</span> Performance, feel, build and value, out of ten.</p>
+<p data-from=".76" data-to="1.01"><span>Follow-through.</span> Would they buy it again with their own money?</p>
 </div>
-<div class="cards">
-{{CARDS3}}
-</div>
+<p class="sr">Every tester starts with the kit in their own bag, plays at least three rounds, scores performance, feel, build and value out of ten, and says whether they would buy it again with their own money.</p>
+<p class="swing-credit">Footage: Pexels</p>
 </div>
 </section>
+<div class="mow" aria-hidden="true"></div>
+
+<section class="latest">
+{{LATESTBAND}}
+<div class="s" style="padding-top:34px"><div class="wrap"><div class="cards">
+{{CARDS3}}
+</div></div></div>
+</section>
+{{STATS}}
 
 <section class="s kit-band scene" data-scene="kitbag" data-pin style="--len:190vh">
 <div class="scene-pin">
@@ -76,9 +89,11 @@
 </div>
 </section>
 
+{{FINDER}}
+
 <section class="s" style="padding-top:0">
 <div class="wrap rv-up">
-<div class="join">
+<div class="join" data-vjoin><video muted loop playsinline preload="none" poster="/media/putt.jpg" aria-hidden="true" data-src="/media/putt.mp4"></video>
 <div style="flex:999 1 420px;min-width:0"><h2>Got a handicap and an opinion?</h2><p>Join the testers. Review the kit you already play with, then the kit you've always wondered about.</p></div>
 <a class="btn btn-dark" href="/join/">Join the testers<span class="gb"></span></a>
 <svg class="flagbg" viewBox="0 0 100 120" aria-hidden="true"><line x1="20" y1="10" x2="20" y2="120" stroke="#FFFFFF" stroke-width="5"/><path class="flag-wave" d="M22 10 L90 30 L22 52 Z" fill="#FFFFFF"/></svg>

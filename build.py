@@ -42,13 +42,13 @@ def nicedate(d):
 
 # ---------------------------------------------------------------- shared bits of markup
 FLAG = ('<svg viewBox="0 0 22 30" aria-hidden="true"><line x1="3" y1="2" x2="3" y2="30" stroke="#fff" stroke-width="2"/>'
-        '<path class="flag-wave" d="M4 3 L20 8 L4 14 Z" fill="#4169E1"/><ellipse cx="3" cy="29" rx="3" ry="1" fill="#9DB4FF"/></svg>')
+        '<path class="flag-wave" d="M4 3 L20 8 L4 14 Z" fill="#2F5CFF"/><ellipse cx="3" cy="29" rx="3" ry="1" fill="#82A3FF"/></svg>')
 CIRCLE = '<svg viewBox="0 0 58 50" aria-hidden="true"><ellipse cx="29" cy="25" rx="26" ry="21" pathLength="100" transform="rotate(-8 29 25)"/></svg>'
 CUP = ('<span class="cupball" aria-hidden="true"><svg viewBox="0 0 22 22"><ellipse cx="11" cy="18" rx="9" ry="3" fill="#00140B" opacity=".6"/>'
        '<circle class="b" cx="11" cy="10" r="5" fill="#fff"/></svg></span>')
 TEE = ('<svg class="tee" viewBox="0 0 40 52" overflow="visible" aria-hidden="true"><g class="chip" style="transform-box:fill-box;transform-origin:center"><circle cx="20" cy="13" r="12" fill="#fff"/>'
        '<g fill="#d5d7ee"><circle cx="15" cy="9" r="1.4"/><circle cx="21" cy="7" r="1.4"/><circle cx="26" cy="11" r="1.4"/><circle cx="17" cy="15" r="1.4"/><circle cx="23" cy="16" r="1.4"/></g></g>'
-       '<path d="M12 25 h16 l-6 6 v18 h-4 v-18 z" fill="#4169E1"/></svg>')
+       '<path d="M12 25 h16 l-6 6 v18 h-4 v-18 z" fill="#2F5CFF"/></svg>')
 
 KIT = [  # slug, name, plural for page titles, icon path(s)
     ("drivers", "Drivers &amp; woods", "driver and fairway wood", '<path d="M24 3 L13 25"/><path d="M5 26 c-1 5 2 6 7 6 h7 c4 0 4-4 1-6 z"/>'),

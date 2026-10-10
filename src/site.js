@@ -309,7 +309,7 @@
   /* walk the 18: a rail down the left edge with a marker per hole (section) */
   var rail = null, marks = [], railH = 0;
   function buildRail() {
-    var main = document.getElementById('main'); if (!main) return;
+    var main = document.getElementById('main'); if (!main || document.querySelector('.page')) return; // not in the one-file preview
     var found = [].slice.call(main.querySelectorAll('.shead .hole .eyebrow, .prose > h2, .writeup > h2, .rv h2, .shead h2'));
     var seen = [], items = [];
     found.forEach(function (n) {

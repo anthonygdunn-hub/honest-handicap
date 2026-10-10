@@ -1,7 +1,7 @@
 :root{
-  --mid:#0B0B2A;--card:#13134A;--card2:#1C1C5A;--line:#2B2B6E;--deep:#08081F;
-  --cyan:#19D3FF;--cyan2:#8BE9FF;--pink:#FF2E9A;--white:#FFFFFF;
-  --txt:#E6E8FF;--txt2:#C9CCF2;--txt3:#A9ADDB;
+  --mid:#002B18;--card:#004225;--card2:#0B5233;--line:#1F6B47;--deep:#001F11;
+  --cyan:#9DB4FF;--cyan2:#C7D4FF;--pink:#4169E1;--white:#FFFFFF;
+  --txt:#EAF2EC;--txt2:#C8D9CD;--txt3:#A3BFAD;
   --head:'Barlow Condensed',sans-serif;--mono:'DM Mono',monospace;--body:'Barlow',sans-serif;
   --wrap:1200px;
 }
@@ -27,7 +27,7 @@ p{margin:0}
 .adbar{background:var(--card);border-bottom:1px solid var(--line);padding:9px 24px;text-align:center;font-family:var(--mono);font-size:12.5px;color:var(--txt2)}
 
 /* header */
-header.top{position:sticky;top:0;z-index:50;background:rgba(11,11,42,.92);backdrop-filter:blur(8px);border-bottom:1px solid transparent;transition:border-color .2s}
+header.top{position:sticky;top:0;z-index:50;background:rgba(0,43,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid transparent;transition:border-color .2s}
 header.top.stuck{border-color:var(--line)}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;padding-bottom:14px}
 .logo{display:block;line-height:0}.logo svg{height:48px;width:auto}
@@ -46,7 +46,7 @@ nav.main a:not(.btn):hover::after,nav.main a[aria-current]::after{transform:scal
 /* buttons, with a ball that rolls in on hover */
 .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--head);font-weight:800;font-size:20px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;padding:13px 26px;border-radius:4px;border:2px solid transparent;cursor:pointer;min-height:48px;transition:transform .15s}
 .btn:active{transform:translateY(1px)}
-.btn-pink{background:var(--pink);color:var(--mid)}.btn-pink:hover{color:var(--mid);background:#ff52ad}
+.btn-pink{background:var(--pink);color:#fff}.btn-pink:hover{color:#fff;background:#5B7FE8}
 .btn-line{border-color:var(--cyan);color:var(--cyan);background:none}.btn-line:hover{color:var(--mid);background:var(--cyan)}
 .btn-dark{background:var(--mid);color:#fff}.btn-dark:hover{color:#fff;background:#000}
 .btn .gb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff 0 40%,#d9dbf0 70%,#a9add0);box-shadow:inset -1px -1px 0 #0002;transform:translateX(-6px) rotate(0);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.3,1),opacity .2s}
@@ -71,7 +71,7 @@ main>.pg{animation:pagein .35s ease-out}
 .hero-art svg{width:100%;height:auto;display:block}
 
 /* mown fairway stripe divider */
-.mow{height:18px;background:repeating-linear-gradient(90deg,#14144d 0 48px,#191960 48px 96px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);animation:mow 18s linear infinite}
+.mow{height:18px;background:repeating-linear-gradient(90deg,#004225 0 48px,#0A4A2B 48px 96px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);animation:mow 18s linear infinite}
 @keyframes mow{to{background-position:192px 0}}
 
 /* section heads: each section is a hole on the course */
@@ -120,7 +120,7 @@ section.s{padding:84px 0}
 .kit{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 @media (max-width:520px){.kit{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.kit a{font-size:17px;padding:14px 12px;gap:10px}.kit svg{width:26px;height:26px;flex-basis:26px}}
 .kit a{display:flex;align-items:center;gap:14px;padding:18px 18px;border:1.5px solid var(--cyan);border-radius:4px;color:#fff;text-decoration:none;font-family:var(--head);font-weight:600;font-size:21px;letter-spacing:.5px;text-transform:uppercase;transition:background .2s}
-.kit a:hover{background:#19d3ff14;color:#fff}
+.kit a:hover{background:#9DB4FF14;color:#fff}
 .kit svg{width:34px;height:34px;flex:0 0 34px;stroke:var(--cyan);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 8%;transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
 .kit a:hover svg{transform:rotate(-28deg)}
 
@@ -132,8 +132,8 @@ section.s{padding:84px 0}
 .step p{color:var(--txt2)}
 
 /* join band */
-.join{background:var(--pink);color:var(--mid);border-radius:6px;padding:44px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;position:relative;overflow:hidden}
-.join h2{color:var(--mid);font-size:clamp(34px,4.4vw,46px);margin-bottom:8px}
+.join{background:var(--pink);color:#fff;border-radius:6px;padding:44px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;position:relative;overflow:hidden}
+.join h2{color:#fff;font-size:clamp(34px,4.4vw,46px);margin-bottom:8px}
 .join p{font-size:19px;font-weight:500}
 .join .flagbg{position:absolute;right:28px;top:14px;width:64px;opacity:.22;pointer-events:none}
 
@@ -279,7 +279,7 @@ footer .legal{flex:1 1 100%;font-family:var(--mono);font-size:12.5px;color:var(-
 .pull{margin:8px 0;padding:22px 26px;border-left:4px solid var(--pink);background:var(--card);border-radius:0 6px 6px 0}
 .pull p{font-size:19px;color:#fff;font-style:italic}
 .pull footer{background:none;border:0;margin-top:10px;font-family:var(--mono);font-size:13px;color:var(--cyan)}
-.kit a[aria-current]{background:#19d3ff26}
+.kit a[aria-current]{background:#9DB4FF26}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}

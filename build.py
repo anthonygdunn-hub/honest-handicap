@@ -50,6 +50,33 @@ TEE = ('<svg class="tee" viewBox="0 0 40 52" overflow="visible" aria-hidden="tru
        '<g fill="#bbbbbb"><circle cx="15" cy="9" r="1.4"/><circle cx="21" cy="7" r="1.4"/><circle cx="26" cy="11" r="1.4"/><circle cx="17" cy="15" r="1.4"/><circle cx="23" cy="16" r="1.4"/></g></g>'
        '<path d="M12 25 h16 l-6 6 v18 h-4 v-18 z" fill="#D21F25"/></svg>')
 
+# the kit bag that tips out on the home page (Hole 2)
+BAG = ('<svg class="bag" viewBox="0 0 120 150" aria-hidden="true"><g class="bag-body">'
+       '<path d="M30 150 L42 140" stroke="#1B1B1B" stroke-width="4" stroke-linecap="round"/><path d="M90 150 L78 140" stroke="#1B1B1B" stroke-width="4" stroke-linecap="round"/>'
+       '<rect x="34" y="42" width="52" height="100" rx="12" fill="#004225"/><rect x="34" y="88" width="52" height="14" fill="#D21F25"/>'
+       '<rect x="30" y="34" width="60" height="14" rx="5" fill="#1B1B1B"/><path d="M86 56 C104 64 104 110 86 120" fill="none" stroke="#1B1B1B" stroke-width="5"/>'
+       '<g stroke="#1B1B1B" stroke-width="3" stroke-linecap="round"><line x1="46" y1="34" x2="40" y2="4"/><line x1="58" y1="34" x2="58" y2="0"/><line x1="72" y1="34" x2="80" y2="6"/></g>'
+       '<circle cx="40" cy="6" r="6" fill="#1B1B1B"/><rect x="53" y="0" width="12" height="7" rx="2" fill="#1563A5"/><path d="M76 4 l10 -2 l2 7 l-10 2 z" fill="#1B1B1B"/></g></svg>')
+
+# the scorecard that fills itself in as you scroll (home Hole 3 and How we test)
+_CS = [("Performance", 8), ("Feel", 7), ("Build quality", 9), ("Value", 7)]
+CARDSCENE = ('<div class="cardscene">'
+    '<ol class="cs-steps">'
+    '<li data-step="0"><span class="n">01</span><h3>Real rounds</h3><p>At least three rounds, or two plus a range session, before anyone gives a verdict.</p></li>'
+    '<li data-step="1"><span class="n">02</span><h3>The same card</h3><p>Performance, feel, build and value out of 10, and whether they would buy it again with their own money.</p></li>'
+    '<li data-step="2"><span class="n">03</span><h3>Nothing hidden</h3><p>Free or loaned kit is declared at the top, and the verdict is always the tester\'s own.</p></li>'
+    '</ol>'
+    '<figure class="cs-card" aria-label="An example review card, filled in">'
+    '<div class="cs-stamp">Example card</div>'
+    '<div class="cs-head"><div><span>Player</span><b class="hw" data-at=".04">You</b></div><div><span>Handicap</span><b class="hw" data-at=".08">18</b></div>'
+    '<div><span>Home course</span><b class="hw" data-at=".12">Your club</b></div><div><span>Rounds</span><b class="hw" data-at=".18">3 + 1 range</b></div></div>'
+    '<div class="cs-rows">' + "".join(
+        f'<div class="cs-row" data-at="{.36 + i * .1:.2f}" style="--w:{v * 10}%"><span>{lab}</span><span class="track"><span class="fill"></span></span><b class="hw">{v}</b></div>'
+        for i, (lab, v) in enumerate(_CS)) + '</div>'
+    '<div class="cs-foot"><div class="cs-again" data-at=".78"><span>Buy it again with my own money?</span><b class="hw">Yes</b></div>'
+    f'<div class="cs-verdict" data-at=".86"><span>Verdict</span><span class="verdict big">{CIRCLE}<b class="hw">8</b></span></div></div>'
+    '</figure></div>')
+
 KIT = [  # slug, name, plural for page titles, icon path(s)
     ("drivers", "Drivers &amp; woods", "driver and fairway wood", '<path d="M24 3 L13 25"/><path d="M5 26 c-1 5 2 6 7 6 h7 c4 0 4-4 1-6 z"/>'),
     ("irons", "Irons &amp; hybrids", "iron and hybrid", '<path d="M24 3 L15 24"/><path d="M8 24 h11 l2 7 h-15 z"/>'),
@@ -287,14 +314,14 @@ def review_page(r):
 <p class="lede">{t(r, r.get("oneline"))}</p>
 <div class="card5 rv-up">
 <div class="r h"><div>Tester</div><div>Handicap</div><div>Home course</div><div>Rounds played</div><div class="vbox" style="justify-content:center">Verdict</div></div>
-<div class="r b"><div>{t(r, r["first_name"])}</div><div>{t(r, hcp(r.get("handicap")))}</div><div>{t(r, r.get("course") or "–")}</div><div>{t(r, r.get("rounds") or "–")}</div><div class="vbox"><span class="verdict big" aria-label="Verdict {e(r["overall"])} out of 10">{CIRCLE}{e(r["overall"])}</span></div></div>
+<div class="r b"><div>{t(r, r["first_name"])}</div><div>{t(r, hcp(r.get("handicap")))}</div><div>{t(r, r.get("course") or "–")}</div><div>{t(r, r.get("rounds") or "–")}</div><div class="vbox"><span class="verdict big" data-scene="verdict" aria-label="Verdict {e(r["overall"])} out of 10">{CIRCLE}{e(r["overall"])}</span></div></div>
 </div>
 {declare(r)}
 <p class="small" style="font-family:var(--mono)">Published {nicedate(r["published_at"])}</p>
 {gallery}
 <section class="rv-up" style="display:flex;flex-direction:column;gap:14px">
 <h2 style="font-size:34px">The scores</h2>
-<div class="bars">{bar("Performance", r["performance"])}{bar("Feel", r["feel"])}{bar("Build quality", r["build"])}{bar("Value", r["value"])}</div>
+<div class="bars" data-scene="bars">{bar("Performance", r["performance"])}{bar("Feel", r["feel"])}{bar("Build quality", r["build"])}{bar("Value", r["value"])}</div>
 <div class="again"><strong>Buy it again with my own money?</strong>{"Yes" if r.get("again") else "No"}</div>
 </section>
 <section class="writeup" style="display:flex;flex-direction:column;gap:14px">
@@ -338,7 +365,7 @@ def review_jsonld(r):
 # ---------------------------------------------------------------- pages
 def fill(body):
     aff = CFG.get("affiliates") or []
-    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS)
+    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS).replace("{{BAG}}", BAG).replace("{{CARDSCENE}}", CARDSCENE)
             .replace("{{CARDS3}}", cards(REVIEWS[:3]))
             .replace("{{KIT}}", "".join(f'<a href="/reviews/{k}/">{icon(k)}{CAT[k]["name"]}</a>' for k in CAT))
             .replace("{{TESTERS}}", testers_block())

@@ -176,3 +176,195 @@
 
   observe(); onScroll();
 })();
+
+/* ===== scroll scenes =====
+   Each [data-scene] gets a progress from 0 to 1. Pinned scenes (data-pin) measure it across their
+   tall section while the inside stays put; on small screens they don't pin and play as they come
+   into view. Reduced motion: every scene jumps straight to its finished picture. */
+(function () {
+  'use strict';
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pinMQ = matchMedia('(min-width:900px) and (min-height:620px) and (prefers-reduced-motion:no-preference)');
+  var root = document.documentElement, head = document.getElementById('top');
+  var clamp = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+  var seg = function (p, a, b) { return clamp((p - a) / (b - a)); };
+  var easeOut = function (t) { return 1 - Math.pow(1 - t, 3); };
+  var easeInOut = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+  var back = function (t) { var c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  var hh = 76;
+  function setHead() { hh = head ? head.offsetHeight : 76; root.style.setProperty('--hh', hh + 'px'); }
+
+  var SCENES = {
+    hero: function (el) {
+      var svg = el.querySelector('#hole'); if (!svg) return null;
+      var path = svg.querySelector('#flight'), L = path.getTotalLength();
+      var ball = svg.querySelector('#ball'), shadow = svg.querySelector('#shadow'), club = svg.querySelector('#club');
+      var ripple = svg.querySelector('#ripple'), inhole = svg.querySelector('#inhole'), yds = svg.querySelector('#yds');
+      var hint = el.querySelector('.scroll-hint');
+      // reveal the dashed flight trail with a mask that grows along the same path
+      var NS = 'http://www.w3.org/2000/svg';
+      var mask = document.createElementNS(NS, 'mask'); mask.id = 'trailmask'; mask.setAttribute('maskUnits', 'userSpaceOnUse');
+      var mp = document.createElementNS(NS, 'path'); mp.setAttribute('d', path.getAttribute('d'));
+      mp.setAttribute('fill', 'none'); mp.setAttribute('stroke', '#fff'); mp.setAttribute('stroke-width', '10'); mp.setAttribute('pathLength', '1000');
+      mask.appendChild(mp); svg.querySelector('defs').appendChild(mask); path.setAttribute('mask', 'url(#trailmask)');
+      var fm = svg.querySelector('#flightmask'); if (fm) fm.remove();
+      var FLY = .965; // the last bit of the path is the roll across the green
+      return {
+        unpinned: function () { var r = svg.getBoundingClientRect(); return clamp((innerHeight - r.bottom) / (innerHeight * .45)); },
+        set: function (p) {
+          var sw = p < .06 ? 75 * easeOut(seg(p, 0, .06)) : p < .12 ? 75 * (1 - easeInOut(seg(p, .06, .12))) : -95 * easeOut(seg(p, .12, .24));
+          club.setAttribute('transform', 'rotate(' + sw.toFixed(1) + ' 72 240)');
+          club.style.opacity = 1 - seg(p, .3, .4);
+          var s = easeInOut(seg(p, .12, .7)), r = seg(p, .7, .8);
+          var at = p < .7 ? s * FLY : FLY + (1 - FLY) * r;
+          var pt = path.getPointAtLength(at * L);
+          ball.setAttribute('cx', pt.x.toFixed(1)); ball.setAttribute('cy', pt.y.toFixed(1));
+          var drop = seg(p, .8, .86);
+          ball.setAttribute('r', (7 * (1 - drop * .6)).toFixed(2)); ball.style.opacity = 1 - drop;
+          var gy = 338 - (pt.x - 90) * 48 / 380, lift = Math.max(0, gy - pt.y);
+          shadow.setAttribute('cx', pt.x.toFixed(1)); shadow.setAttribute('cy', gy.toFixed(1));
+          shadow.style.opacity = (.25 * (1 - Math.min(1, lift / 220)) * (1 - drop)).toFixed(3);
+          mp.setAttribute('stroke-dasharray', (at * 1000).toFixed(1) + ' 1000');
+          path.style.opacity = .85 * (1 - seg(p, .9, 1) * .6);
+          var rp = seg(p, .82, .95);
+          ripple.setAttribute('rx', (30 * rp).toFixed(1)); ripple.setAttribute('ry', (8 * rp).toFixed(1));
+          ripple.style.opacity = rp > 0 ? (1 - rp).toFixed(2) : 0;
+          inhole.style.opacity = seg(p, .83, .9);
+          yds.textContent = Math.round(168 * s) + ' yds';
+          if (hint) hint.style.opacity = 1 - seg(p, 0, .08);
+        }
+      };
+    },
+
+    kitbag: function (el) {
+      var bag = el.querySelector('.bag-body'), bagSvg = el.querySelector('.bag');
+      var tiles = [].slice.call(el.querySelectorAll('.kit a')), off = [];
+      function measure() {
+        tiles.forEach(function (t) { t.style.transform = ''; });
+        if (!bagSvg) return;
+        var b = bagSvg.getBoundingClientRect(), bx = b.left + b.width * .45, by = b.top + b.height * .25;
+        off = tiles.map(function (t) { var r = t.getBoundingClientRect(); return [bx - (r.left + r.width / 2), by - (r.top + r.height / 2)]; });
+      }
+      return {
+        measure: measure,
+        set: function (p) {
+          if (bag) bag.style.transform = 'rotate(' + (-38 * easeOut(seg(p, 0, .22))) + 'deg)';
+          tiles.forEach(function (t, i) {
+            var e = back(seg(p, .14 + i * .045, .44 + i * .045)), o = off[i] || [0, 0];
+            if (e >= 1) { t.style.transform = ''; t.style.opacity = ''; return; }
+            t.style.transform = 'translate(' + (o[0] * (1 - e)).toFixed(1) + 'px,' + (o[1] * (1 - e)).toFixed(1) + 'px) scale(' + (.25 + .75 * Math.min(1, e)).toFixed(3) + ') rotate(' + (-50 * (1 - e)).toFixed(1) + 'deg)';
+            t.style.opacity = Math.min(1, e * 2.5).toFixed(2);
+          });
+        }
+      };
+    },
+
+    card: function (el) {
+      var steps = [].slice.call(el.querySelectorAll('.cs-steps li'));
+      var hws = [].slice.call(el.querySelectorAll('.hw')).map(function (h) {
+        var own = h.getAttribute('data-at'), host = h.closest('[data-at]');
+        return [h, own ? +own : host ? +host.getAttribute('data-at') + .08 : 0];
+      });
+      var rows = [].slice.call(el.querySelectorAll('.cs-row'));
+      var ell = el.querySelector('.cs-verdict ellipse'), vat = +(el.querySelector('.cs-verdict') || { getAttribute: function () { return .86; } }).getAttribute('data-at');
+      return {
+        set: function (p) {
+          var cur = p < .3 ? 0 : p < .64 ? 1 : 2;
+          steps.forEach(function (s, i) { s.classList.toggle('on', i === cur || p >= 1); });
+          hws.forEach(function (h) { h[0].classList.toggle('w', p >= h[1]); });
+          rows.forEach(function (r) { r.style.setProperty('--f', easeOut(seg(p, +r.getAttribute('data-at'), +r.getAttribute('data-at') + .1)).toFixed(3)); });
+          if (ell) ell.style.strokeDashoffset = (100 - 100 * easeInOut(seg(p, vat, vat + .1))).toFixed(1);
+        }
+      };
+    },
+
+    bars: function (el) {
+      var fills = [].slice.call(el.querySelectorAll('.fill'));
+      return { set: function (p) { fills.forEach(function (f, i) { f.style.setProperty('--f', easeOut(seg(p, i * .1, .45 + i * .1)).toFixed(3)); }); } };
+    },
+
+    verdict: function (el) {
+      var ell = el.querySelector('ellipse');
+      return { set: function (p) { if (ell) ell.style.strokeDashoffset = (100 - 100 * easeInOut(seg(p, .1, .6))).toFixed(1); } };
+    }
+  };
+
+  var scenes = [].slice.call(document.querySelectorAll('[data-scene]')).map(function (el) {
+    var make = SCENES[el.getAttribute('data-scene')], s = make && make(el);
+    if (!s) return null;
+    s.el = el; s.pin = el.hasAttribute('data-pin');
+    return s;
+  }).filter(Boolean);
+
+  function progress(s) {
+    var r = s.el.getBoundingClientRect();
+    if (s.pin && pinMQ.matches) {
+      var total = s.el.offsetHeight - (innerHeight - hh);
+      return total > 0 ? clamp((hh - r.top) / total) : 1;
+    }
+    if (s.unpinned) return s.unpinned();
+    return clamp((innerHeight * .9 - r.top) / (innerHeight * .6));
+  }
+
+  /* walk the 18: a rail down the left edge with a marker per hole (section) */
+  var rail = null, marks = [], railH = 0;
+  function buildRail() {
+    var main = document.getElementById('main'); if (!main) return;
+    var found = [].slice.call(main.querySelectorAll('.shead .hole .eyebrow, .prose > h2, .writeup > h2, .rv h2, .shead h2'));
+    var seen = [], items = [];
+    found.forEach(function (n) {
+      var box = n.closest('.shead') || n; if (seen.indexOf(box) !== -1) return; seen.push(box);
+      var eb = box.querySelector && box.querySelector('.eyebrow'), h2 = box.tagName === 'H2' ? box : box.querySelector('h2');
+      var label = (eb && /hole/i.test(eb.textContent) ? eb.textContent.split('·')[0].trim() + ' · ' : '') + (h2 ? h2.textContent : eb ? eb.textContent : '');
+      items.push({ el: box, label: label });
+    });
+    var mainTop = main.getBoundingClientRect().top + scrollY;
+    if (!items.length || items[0].el.getBoundingClientRect().top + scrollY - mainTop > 200) items.unshift({ el: main, label: 'First tee' });
+    rail = document.createElement('div'); rail.className = 'rail'; rail.setAttribute('aria-hidden', 'true');
+    rail.innerHTML = '<div class="line"></div><div class="walked"></div><div class="tee"></div>' +
+      '<svg class="pin" viewBox="0 0 20 28"><line x1="4" y1="2" x2="4" y2="28" stroke="#1B1B1B" stroke-width="2"/><path class="flag-wave" d="M5 3 L19 8 L5 13 Z" fill="#D21F25"/></svg><div class="ball"></div>';
+    items.push({ el: null, label: 'The 19th hole' });
+    marks = items.map(function (it) {
+      var m = document.createElement('div'); m.className = 'mk'; m.innerHTML = '<span></span>'; m.firstChild.textContent = it.label;
+      m.addEventListener('click', function () { if (it.el) scrollTo({ top: it.el.getBoundingClientRect().top + scrollY - hh - 20, behavior: reduce ? 'auto' : 'smooth' }); else scrollTo({ top: root.scrollHeight, behavior: reduce ? 'auto' : 'smooth' }); });
+      rail.appendChild(m); return { m: m, el: it.el, at: 1 };
+    });
+    document.body.appendChild(rail);
+  }
+  function placeRail() {
+    if (!rail) return;
+    railH = rail.offsetHeight; var max = root.scrollHeight - innerHeight;
+    marks.forEach(function (k) {
+      k.at = k.el ? clamp((k.el.getBoundingClientRect().top + scrollY - hh - innerHeight * .25) / Math.max(1, max)) : 1;
+      k.m.style.top = (k.at * railH) + 'px';
+    });
+  }
+  function moveRail() {
+    if (!rail || !railH) return;
+    var max = root.scrollHeight - innerHeight, p = max > 0 ? clamp(scrollY / max) : 0, cur = 0;
+    rail.style.setProperty('--y', (p * railH) + 'px');
+    marks.forEach(function (k, i) { var past = p + .001 >= k.at; k.m.classList.toggle('past', past); if (past) cur = i; });
+    marks.forEach(function (k, i) { k.m.classList.toggle('cur', i === cur); });
+  }
+
+  var ticking = false;
+  function frame() {
+    ticking = false;
+    scenes.forEach(function (s) { s.set(progress(s)); });
+    moveRail();
+  }
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+  function layout() {
+    setHead();
+    scenes.forEach(function (s) { if (s.measure) { s.set(0); s.measure(); } });
+    placeRail(); frame();
+  }
+
+  buildRail();
+  if (reduce) { setHead(); scenes.forEach(function (s) { s.set(1); }); placeRail(); moveRail(); addEventListener('scroll', moveRail, { passive: true }); return; }
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', layout);
+  if (pinMQ.addEventListener) pinMQ.addEventListener('change', layout);
+  addEventListener('load', layout);
+  layout();
+})();

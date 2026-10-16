@@ -372,10 +372,10 @@
           });
           var pt = shots[i].getPointAtLength(lens[i] * travel), hop = Math.sin(Math.PI * Math.min(1, travel / .92));
           ball.setAttribute('cx', pt.x.toFixed(1)); ball.setAttribute('cy', pt.y.toFixed(1));
-          ball.setAttribute('r', (7 + 7 * hop).toFixed(1)); ball.style.opacity = travel > .985 ? 0 : 1;
+          ball.setAttribute('r', (6 + 5 * hop).toFixed(1)); ball.style.opacity = travel > .985 ? 0 : 1;
           var show = p < A ? (p > .02 ? 0 : -1) : i;
           cards.forEach(function (c, k) { c.classList.toggle('on', k === show); c.tabIndex = k === show ? 0 : -1; });
-          dots.forEach(function (d, k) { d.className = k < i || (k === i && travel > .98) ? 'done' : k === i && p >= A ? 'on' : ''; });
+          dots.forEach(function (d, k) { d.className = k < i || (k === i && travel > .98) ? 'cp-done' : k === i && p >= A ? 'cp-on' : ''; });
           if (i !== lastHole && p >= A && p <= B) { if (lastHole !== -1 && window.HHsound) HHsound.play('whoosh'); lastHole = i; }
           if (travel > .98 && el._holed !== i) { el._holed = i; window.HHsound && HHsound.play('cup'); }
           if (travel < .9 && el._holed === i) el._holed = -1;

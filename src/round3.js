@@ -113,7 +113,7 @@ window.HHsound = (function () {
       W = r.width; H = r.height; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0);
       hor = H * .34; K = (H * .8 - hor) * Z0 / HC; draw();
     }
-    function P(x, y, z) { var s = K / (z + Z0); return { x: W / 2 + x * s * (W < 600 ? .75 : 1), y: hor + (HC - y) * s, s: s }; }
+    function P(x, y, z) { var s = K / (z + Z0), ys = Math.min(1, W / H * .5); return { x: W / 2 + x * s * (W < 600 ? .75 : 1), y: hor + (HC - y * ys) * s, s: s }; }
     function label() { hit.textContent = state === 'power' ? 'Set power' : state === 'back' ? 'Strike!' : 'Swing'; }
 
     function draw() {
@@ -141,7 +141,7 @@ window.HHsound = (function () {
         ctx.fillStyle = '#ffffffd9'; ctx.fillRect(sx.x - 14, sx.y - 16, 28, 13); ctx.fillStyle = '#004225'; ctx.fillText(t[1], sx.x, sx.y - 6);
       });
       old.forEach(function (o) { var q = P(o.x, 0, o.z); ctx.fillStyle = '#ffffffb0'; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(1.4, q.s * .05), 0, Math.PI * 2); ctx.fill(); });
-      var m1 = P(-1.6, 0, -1.2), m2 = P(1.6, 0, -1.2), m3 = P(1.6, 0, 1.4), m4 = P(-1.6, 0, 1.4);
+      var m1 = P(-.9, 0, -.6), m2 = P(.9, 0, -.6), m3 = P(.9, 0, 1.2), m4 = P(-.9, 0, 1.2);
       ctx.fillStyle = '#1F5A2E'; ctx.beginPath(); ctx.moveTo(m1.x, m1.y); ctx.lineTo(m2.x, m2.y); ctx.lineTo(m3.x, m3.y); ctx.lineTo(m4.x, m4.y); ctx.fill();
       var bx = 0, by = 0, bz = 0;
       if (shot) {

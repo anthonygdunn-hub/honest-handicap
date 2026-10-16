@@ -243,6 +243,8 @@
           ripple.setAttribute('rx', (30 * rp).toFixed(1)); ripple.setAttribute('ry', (8 * rp).toFixed(1));
           ripple.style.opacity = rp > 0 ? (1 - rp).toFixed(2) : 0;
           inhole.style.opacity = seg(p, .83, .9);
+          if (p >= .84 && lastP < .84 && window.HHsound) HHsound.play('cup');
+          if (p >= .13 && lastP < .13 && window.HHsound) HHsound.play('strike');
           yds.textContent = Math.round(168 * s) + ' yds';
           if (hint) hint.style.opacity = 1 - seg(p, 0, .08);
           lastP = p; paint();
@@ -321,7 +323,62 @@
           if (!started && r.top < innerHeight * 2.5 && r.bottom > -innerHeight) load();
           if (!started) return;
           var i = Math.round(easeInOut(seg(p, .05, .95)) * (n - 1)); if (i !== cur) draw(i);
+          if (p >= .5 && (el._lp || 0) < .5 && window.HHsound) HHsound.play('strike'); el._lp = p;
           lines.forEach(function (l) { l.classList.toggle('on', p >= +l.getAttribute('data-from') && p < +l.getAttribute('data-to')); });
+        }
+      };
+    },
+
+    course: function (el) {
+      if (reduce) return null;
+      var svg = el.querySelector('.course-map'); if (!svg) return null;
+      var H = JSON.parse(el.getAttribute('data-holes')), n = H.length;
+      var shots = [].slice.call(svg.querySelectorAll('.shot')), ball = svg.querySelector('.cmball');
+      var cards = [].slice.call(el.querySelectorAll('.ccard')), prog = el.querySelector('.cprog'), dots = [];
+      el.classList.add('fly');
+      for (var k = 0; k < n; k++) { var d = document.createElement('i'); prog.appendChild(d); dots.push(d); }
+      var lens = shots.map(function (p) { return p.getTotalLength(); });
+      var aspect = 1.6, narrow = false, lastHole = -1;
+      var FULL = [-40, -60, 1680, 1120];
+      var views = H.map(function (h) {
+        var xs = [h[0][0], h[1][0], h[2][0]], ys = [h[0][1], h[1][1], h[2][1]];
+        var x0 = Math.min.apply(0, xs), x1 = Math.max.apply(0, xs), y0 = Math.min.apply(0, ys), y1 = Math.max.apply(0, ys);
+        return [x0 - 120, y0 - 120, x1 - x0 + 240, y1 - y0 + 200];
+      });
+      function fit(v) {
+        var w = v[2], h = v[3], cx = v[0] + w / 2, cy = v[1] + h / 2;
+        if (narrow) { h *= 1.5; cy += v[3] * .28; } else { w *= 1.25; cx += v[2] * .12; } // leave room for the card
+        if (w / h < aspect) w = h * aspect; else h = w / aspect;
+        return [cx - w / 2, cy - h / 2 - (narrow ? 0 : h * .04), w, h];
+      }
+      function mix(a, b, t) { return a.map(function (x, i) { return x + (b[i] - x) * t; }); }
+      function dash(L, e) { var s = '', run = e * 1000; for (var x = 0; x + 10 <= run; x += 10) s += '1 9 '; return (s || '0 0 ') + '0 2000'; }
+      return {
+        measure: function () { el._p = null; var r = svg.getBoundingClientRect(); aspect = r.width / Math.max(1, r.height); narrow = r.width < 860; },
+        set: function (p) {
+          if (p === el._p) return; el._p = p; // nothing moves while it's off screen
+          var A = .06, B = .95, q = seg(p, A, B) * n, i = Math.min(n - 1, Math.floor(q)), f = p >= B ? 1 : q - i, view, travel;
+          if (p < A) { view = mix(fit(FULL), fit(views[0]), easeInOut(seg(p, 0, A))); travel = 0; i = 0; f = 0; }
+          else if (p > B) { view = mix(fit(views[n - 1]), fit(FULL), easeInOut(seg(p, B, 1))); travel = 1; }
+          else {
+            view = i === 0 ? fit(views[0]) : mix(fit(views[i - 1]), fit(views[i]), easeInOut(seg(f, 0, .3)));
+            travel = easeInOut(seg(f, .32, .9));
+          }
+          svg.setAttribute('viewBox', view.map(function (v) { return v.toFixed(1); }).join(' '));
+          shots.forEach(function (s, k) {
+            if (k < i) { s.style.opacity = .85; s.setAttribute('stroke-dasharray', '1 9'); }
+            else if (k > i) s.style.opacity = 0;
+            else { s.style.opacity = .95; s.setAttribute('stroke-dasharray', dash(lens[k], travel)); }
+          });
+          var pt = shots[i].getPointAtLength(lens[i] * travel), hop = Math.sin(Math.PI * Math.min(1, travel / .92));
+          ball.setAttribute('cx', pt.x.toFixed(1)); ball.setAttribute('cy', pt.y.toFixed(1));
+          ball.setAttribute('r', (7 + 7 * hop).toFixed(1)); ball.style.opacity = travel > .985 ? 0 : 1;
+          var show = p < A ? (p > .02 ? 0 : -1) : i;
+          cards.forEach(function (c, k) { c.classList.toggle('on', k === show); c.tabIndex = k === show ? 0 : -1; });
+          dots.forEach(function (d, k) { d.className = k < i || (k === i && travel > .98) ? 'done' : k === i && p >= A ? 'on' : ''; });
+          if (i !== lastHole && p >= A && p <= B) { if (lastHole !== -1 && window.HHsound) HHsound.play('whoosh'); lastHole = i; }
+          if (travel > .98 && el._holed !== i) { el._holed = i; window.HHsound && HHsound.play('cup'); }
+          if (travel < .9 && el._holed === i) el._holed = -1;
         }
       };
     },
@@ -358,10 +415,10 @@
   var rail = null, marks = [], railH = 0;
   function buildRail() {
     var main = document.getElementById('main'); if (!main || document.querySelector('.page')) return; // not in the one-file preview
-    var found = [].slice.call(main.querySelectorAll('.shead .hole .eyebrow, .prose > h2, .writeup > h2, .rv h2, .shead h2'));
+    var found = [].slice.call(main.querySelectorAll('.shead .hole .eyebrow, .prose > h2, .writeup > h2, .rv h2, .shead h2, .rail-head'));
     var seen = [], items = [];
     found.forEach(function (n) {
-      var box = n.closest('.shead') || n; if (seen.indexOf(box) !== -1) return; seen.push(box);
+      var box = n.closest('.shead, .rail-head') || n; if (seen.indexOf(box) !== -1) return; seen.push(box);
       var eb = box.querySelector && box.querySelector('.eyebrow'), h2 = box.tagName === 'H2' ? box : box.querySelector('h2');
       var label = (eb && /hole/i.test(eb.textContent) ? eb.textContent.split('·')[0].trim() + ' · ' : '') + (h2 ? h2.textContent : eb ? eb.textContent : '');
       items.push({ el: box, label: label });
@@ -520,7 +577,7 @@
   /* putting: drag back from the ball and let go. Par 2. Keyboard: arrows aim and set pace, Enter putts */
   [].slice.call(document.querySelectorAll('.puttgame')).forEach(function (cv) {
     var wrap = cv.parentNode, msg = wrap.querySelector('.putt-msg'), reset = wrap.querySelector('.putt-reset'), ctx = cv.getContext('2d');
-    var W, H, d = Math.min(devicePixelRatio || 1, 2), ball, cup, vel = { x: 0, y: 0 }, strokes = 0, drag = null, moving = false, done = false, aim = { a: 0, p: .5 }, kb = false, slope;
+    var W, H, d = Math.min(devicePixelRatio || 1, 2), ball, cup, vel = { x: 0, y: 0 }, strokes = 0, drag = null, moving = false, done = false, aim = { a: 0, p: .5 }, kb = false, slope, lipped = false;
     function size() { var r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
     function newHole() {
       size(); strokes = 0; done = false; moving = false; vel = { x: 0, y: 0 };
@@ -551,7 +608,7 @@
     }
     function putt(vx, vy) {
       var len = Math.min(140, Math.hypot(vx, vy)); if (len < 6) return;
-      var k = len / Math.hypot(vx, vy) * .12; vel = { x: vx * k, y: vy * k }; strokes++; moving = true; say('Rolling…'); loop();
+      var k = len / Math.hypot(vx, vy) * .12; vel = { x: vx * k, y: vy * k }; strokes++; moving = true; say('Rolling…'); window.HHsound && HHsound.play('putt'); loop();
     }
     function loop() {
       if (!moving) return;
@@ -559,10 +616,10 @@
       if (ball.x < 7 || ball.x > W - 7) { vel.x *= -.6; ball.x = Math.max(7, Math.min(W - 7, ball.x)); }
       if (ball.y < 7 || ball.y > H - 7) { vel.y *= -.6; ball.y = Math.max(7, Math.min(H - 7, ball.y)); }
       var dx = cup.x - ball.x, dy = cup.y - ball.y, dist = Math.hypot(dx, dy), sp = Math.hypot(vel.x, vel.y);
-      if (dist < 8 && sp < 4.2) { moving = false; done = true; ball.x = cup.x; ball.y = cup.y;
+      if (dist < 8 && sp < 4.2) { moving = false; done = true; ball.x = cup.x; ball.y = cup.y; window.HHsound && HHsound.play('cup');
         var names = { 1: 'Holed in one, you jammy so-and-so', 2: 'Two putts. Par. Respectable', 3: 'Three-putt. Happens to the best of us' };
         say((names[strokes] || strokes + ' putts. Maybe test a new putter?') + '.'); drawFrame(); return; }
-      if (dist < 9 && sp >= 4.2) { var nx = -dx / dist, ny = -dy / dist; vel.x += nx * .9; vel.y += ny * .9; } // lip-out
+      if (dist < 9 && sp >= 4.2) { var nx = -dx / dist, ny = -dy / dist; vel.x += nx * .9; vel.y += ny * .9; if (!lipped) { lipped = true; window.HHsound && HHsound.play('lip'); } } else if (dist > 14) lipped = false; // lip-out
       if (sp < .09) { moving = false; vel = { x: 0, y: 0 }; aim.a = Math.atan2(cup.y - ball.y, cup.x - ball.x); say(strokes === 1 ? 'Not bad. Knock it in.' : 'Keep going.'); drawFrame(); return; }
       drawFrame(); requestAnimationFrame(loop);
     }

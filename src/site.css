@@ -476,3 +476,85 @@ footer .legal{flex:1 1 100%;font-family:var(--mono);font-size:12.5px;color:#AAAA
   .bar .fill{width:var(--w)}
 }
 .ic{stroke:var(--cyan);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== round three: 3D kit, course flyover, driving range, sound ===== */
+/* sound toggle in the header */
+.top .wrap{justify-content:flex-start}
+.logo{margin-right:auto}
+.snd{order:5;flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:2px solid #ffffff80;background:none;color:#fff;cursor:pointer;display:grid;place-items:center;transition:border-color .2s,background .2s}
+.snd:hover{border-color:#fff}
+.snd[aria-pressed=true]{background:#ffffff1f;border-color:#fff}
+.snd svg{width:22px;height:22px}
+.snd .on{display:none}.snd[aria-pressed=true] .on{display:inline}.snd[aria-pressed=true] .off{display:none}
+@media (max-width:860px){.menu-btn{order:6}}
+
+/* 3D kit */
+.k3-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:44px;align-items:center}
+.k3-pick{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 14px}
+.k3-pick button{font:inherit;font-weight:700;font-size:16px;padding:12px 18px;min-height:48px;border-radius:4px;border:1.5px solid var(--cyan);background:#fff;color:var(--txt);cursor:pointer;transition:background .15s}
+.k3-pick button:hover{background:#1563A514}
+.k3-pick button[aria-pressed=true]{background:var(--cyan);color:#fff}
+.k3note{display:none;color:var(--txt2);font-size:17px}
+.k3note.on{display:block}
+.club3d{position:relative;aspect-ratio:1/.82;border-radius:8px;background:radial-gradient(ellipse at 50% 62%,#FFFFFF 0,#F2F2F2 55%,#E6E8E6 100%);cursor:grab;outline-offset:4px;overflow:hidden}
+.club3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.club3d.grab{cursor:grabbing}
+.k3hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt3);pointer-events:none;transition:opacity .4s;white-space:nowrap}
+.k3hint::before{content:"⟲ "}
+.club3d.spun .k3hint{opacity:0}
+.club3d.no3d{display:none}
+@media (max-width:860px){.k3-grid{grid-template-columns:1fr;gap:20px}.club3d{aspect-ratio:1/.95}}
+/* small spinning club in a category band */
+.vband .club3d.mini{position:absolute;z-index:1;top:10px;bottom:10px;right:max(8px,calc((100% - 1200px)/2));width:min(34%,400px);aspect-ratio:auto;background:none;border-radius:0}
+.vband .club3d.mini .k3hint{color:#fffc}
+.vband.has3d .vband-in .wrap{padding-right:min(36%,420px)}
+@media (max-width:700px){
+  .vband.has3d{min-height:440px}
+  .vband .club3d.mini{top:6px;bottom:auto;right:0;width:62%;height:200px}
+  .vband.has3d .vband-in .wrap{padding-right:24px}
+}
+
+/* course flyover */
+.scene-course{background:#2E6F3E;color:#fff}
+.course-pin{position:relative;overflow:hidden;height:calc(100vh - var(--hh,76px));min-height:520px}
+.course-map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.course-head{position:absolute;top:0;left:0;right:0;z-index:2;padding-top:26px;pointer-events:none;text-shadow:0 2px 10px #0009}
+.course-head::before{content:"";position:absolute;inset:0 0 -60px;background:linear-gradient(180deg,#002B18d9,#002B1800);z-index:-1}
+.course-head h2{color:#fff;font-size:clamp(30px,4vw,48px)}
+.course-head .sub{color:#E8EFEA;max-width:520px}
+.course-head .eyebrow{color:#fff}
+.course-head .hole svg line{stroke:#fff}
+.ccards{position:absolute;z-index:2;right:max(16px,calc((100% - 1200px)/2 + 24px));bottom:28px;width:min(390px,calc(100% - 32px));height:178px}
+.ccard{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:6px;background:#fff;color:var(--txt);text-decoration:none;padding:18px 20px 16px;border-radius:6px;border-left:5px solid var(--pink);box-shadow:0 10px 30px #0005;opacity:0;transform:translateY(14px);transition:opacity .3s,transform .3s;pointer-events:none}
+.ccard.on{opacity:1;transform:none;pointer-events:auto}
+.ccard .cno{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
+.ccard b{font-family:var(--head);font-size:26px;line-height:1.1}
+.ccard .cgo{font-weight:700;color:var(--pink);font-size:15px;margin-top:2px}
+.ccard:hover .cgo{text-decoration:underline}
+.cprog{position:absolute;z-index:2;right:max(16px,calc((100% - 1200px)/2 + 24px));top:30px;display:flex;gap:6px}
+.cprog i{width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:transparent;transition:background .2s}
+.cprog i.done{background:#fff}.cprog i.on{background:var(--pink);border-color:var(--pink)}
+.shot{opacity:0}
+@media (max-width:860px){.cprog{top:auto;bottom:216px;right:16px}.ccards{left:16px;right:16px;width:auto;bottom:16px}}
+/* no motion / no JS: a still map with the nine holes listed under it */
+.scene-course:not(.fly) .course-pin{height:auto;min-height:0;padding-bottom:30px}
+.scene-course:not(.fly) .course-head{position:relative}
+.scene-course:not(.fly) .course-map{position:relative;aspect-ratio:16/10;height:auto;margin-top:12px}
+.scene-course:not(.fly) .ccards{position:static;width:auto;height:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1200px;margin:16px auto 0;padding:0 24px}
+.scene-course:not(.fly) .ccard{position:static;opacity:1;transform:none;pointer-events:auto;box-shadow:none}
+.scene-course:not(.fly) .shot{opacity:.8}
+.scene-course:not(.fly) .cmball,.scene-course:not(.fly) .cprog{display:none}
+
+/* driving range */
+.range{background:#fff;border:3px solid var(--deep);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.range-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.range-clubs{display:flex;flex-wrap:wrap;gap:8px}
+.range-clubs button,.range-hit{font:inherit;font-weight:700;font-size:15px;padding:10px 16px;min-height:44px;border-radius:4px;border:1.5px solid var(--deep);background:#fff;color:var(--txt);cursor:pointer}
+.range-clubs button[aria-pressed=true]{background:var(--deep);color:#fff}
+.range-hit{background:var(--pink);border-color:var(--pink);color:#fff;text-transform:uppercase;letter-spacing:.5px;min-width:120px}
+.range-hit:hover{background:var(--pink2)}
+.range-best{font-size:15px;color:var(--txt2)}.range-best b{color:var(--txt)}
+.rangegame{display:block;width:100%;height:clamp(300px,42vw,470px);border-radius:4px;touch-action:manipulation;cursor:pointer;background:#9CC9E8;outline-offset:3px}
+.range-ui{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:16px;min-height:44px}
+.range-msg{font-weight:700}
+@media (max-width:600px){.rangegame{height:380px}}

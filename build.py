@@ -266,7 +266,7 @@ def finder_data():
 
 
 FINDER = ('<section class="s finder-sec"><div class="wrap">'
-          '<div class="shead rv-up"><div><div class="hole">{{FLAG}}<span class="eyebrow">Hole 4 · Par 3</span></div><h2>Ask the caddie</h2>'
+          '<div class="shead rv-up"><div><div class="hole">{{FLAG}}<span class="eyebrow">Hole 6 · Par 3</span></div><h2>Ask the caddie</h2>'
           '<p class="sub">Three quick questions and we\'ll point you at the kit worth reading about first.</p></div></div>'
           '<div class="finder" data-finder>'
           '<ol class="fsteps" aria-hidden="true"><li class="on">Your game</li><li>Your budget</li><li>Your miss</li></ol>'
@@ -280,6 +280,117 @@ FINDER = ('<section class="s finder-sec"><div class="wrap">'
           '<div class="fresult" aria-live="polite"></div>'
           '<script type="application/json" class="fdata">{{FINDERDATA}}</script>'
           '</div></div></section>')
+
+# ---------------------------------------------------------------- round three: 3D kit, course flyover, driving range
+K3 = [("driver", "Driver", "drivers", "A driver head with a carbon crown. Drag it round: our testers judge the look at address as much as the numbers."),
+      ("iron", "7-iron", "irons", "A cavity-back 7-iron. Feel off the face and gapping are what our testers score."),
+      ("wedge", "Wedge", "wedges", "A 56° sand wedge. Spin out of wet bunkers, not a lab."),
+      ("putter", "Putter", "putters", "A blade putter with a plumber's neck. Three-putts are counted honestly."),
+      ("ball", "Ball", "balls", "A ball, dimples and all. Our testers play a box over real rounds before they score it.")]
+K3CAT = {c: k for k, _, c, _ in K3}
+
+
+def kit3d_home():
+    btns = "".join(f'<button type="button" data-kind="{k}" aria-pressed="{str(i == 0).lower()}">{n}</button>' for i, (k, n, c, _) in enumerate(K3))
+    notes = "".join(f'<p class="k3note{" on" if i == 0 else ""}" data-for="{k}">{txt} <a href="/reviews/{c}/">Read the {CAT[c]["noun"]} reviews</a></p>'
+                    for i, (k, n, c, txt) in enumerate(K3))
+    return ('<section class="s k3-sec"><div class="wrap k3-grid">'
+            f'<div class="k3-copy rail-head rv-up"><div class="hole">{FLAG}<span class="eyebrow">Hole 3 · Par 4</span></div><h2>Pick it up</h2>'
+            '<p class="sub">Drag to spin it, or use the arrow keys. These are generic clubs we modelled ourselves, not any brand\'s product.</p>'
+            f'<div class="k3-pick" data-k3pick>{btns}</div>{notes}</div>'
+            '<div class="club3d" data-club3d="driver" data-scroll data-base="/media/3d/" tabindex="0" role="img" aria-label="A 3D golf club you can spin by dragging or with the arrow keys">'
+            '<span class="k3hint" aria-hidden="true">Drag to spin</span></div>'
+            '</div></section>')
+
+
+def kit3d_mini(cat):
+    k = K3CAT.get(cat)
+    return (f'<div class="club3d mini" data-club3d="{k}" data-base="/media/3d/" tabindex="0" role="img" aria-label="A 3D {e(dict((a, b) for a, b, _, _ in K3)[k].lower())} you can spin">'
+            '<span class="k3hint" aria-hidden="true">Drag to spin</span></div>') if k else ""
+
+
+HOLES = [  # tee, dogleg control, green, par, yards, title, line, link
+    ((110, 240), (280, 260), (440, 120), 4, 386, "Latest reviews", "Fresh cards from the testers, newest first.", "/reviews/"),
+    ((540, 150), (640, 100), (770, 190), 3, 164, "Drivers &amp; woods", "Did it find more fairways, or just make more noise?", "/reviews/drivers/"),
+    ((860, 220), (1100, 280), (1330, 140), 5, 512, "Irons &amp; hybrids", "Gapping and feel, from golfers who don't hit it like the pros.", "/reviews/irons/"),
+    ((1470, 250), (1520, 420), (1390, 530), 4, 352, "Wedges", "Spin out of a wet bunker, not a launch monitor.", "/reviews/wedges/"),
+    ((1280, 600), (1080, 520), (900, 610), 3, 148, "Putters", "Every three-putt counted, honestly.", "/reviews/putters/"),
+    ((790, 560), (610, 660), (430, 540), 4, 401, "How we test", "Same card every time: performance, feel, build and value.", "/how-we-test/"),
+    ((300, 620), (170, 730), (250, 870), 4, 368, "The testers", "Real first names, real handicaps, real home courses.", "/testers/"),
+    ((390, 900), (650, 960), (870, 830), 5, 498, "Join the testers", "Play twice a month and tell the truth? There's a card with your name on.", "/join/"),
+    ((970, 880), (1200, 970), (1420, 830), 4, 410, "The 19th hole", "Who we are, and why we started this.", "/about/"),
+]
+
+
+def course_svg():
+    import random
+    rnd = random.Random(19)
+    def qpt(a, c, b, t):
+        return ((1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1])
+    samples = [qpt(a, c, b, i / 20) for a, c, b, *_ in HOLES for i in range(21)]
+    out = ['<svg class="course-map" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">',
+           '<defs><pattern id="fw" width="30" height="30" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="15" height="30" fill="#4C9A5B"/><rect x="15" width="15" height="30" fill="#55A664"/></pattern>'
+           '<radialGradient id="tree" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#2F7A43"/><stop offset="1" stop-color="#14512A"/></radialGradient>'
+           '<radialGradient id="grn" cx=".4" cy=".4" r=".7"><stop offset="0" stop-color="#7CCB86"/><stop offset="1" stop-color="#5BB46A"/></radialGradient></defs>',
+           '<rect x="-400" y="-300" width="2400" height="1600" fill="#2E6F3E"/>',
+           # light rough bands
+           *[f'<path d="M{a[0]} {a[1]} Q{c[0]} {c[1]} {b[0]} {b[1]}" fill="none" stroke="#3A8049" stroke-width="110" stroke-linecap="round"/>' for a, c, b, *_ in HOLES],
+           # water
+           '<path d="M1010 680 C1060 640 1150 650 1170 700 C1190 750 1120 790 1060 770 C1000 755 980 715 1010 680 Z" fill="#3E86B5" stroke="#B9DCEB" stroke-width="4"/>',
+           '<path d="M560 720 C600 700 650 712 660 745 C668 775 620 790 585 780 C550 770 535 740 560 720 Z" fill="#3E86B5" stroke="#B9DCEB" stroke-width="4"/>']
+    trees = []
+    while len(trees) < 260:
+        x, y = rnd.uniform(-200, 1800), rnd.uniform(-150, 1150)
+        if all((x - sx) ** 2 + (y - sy) ** 2 > 78 ** 2 for sx, sy in samples) and not (1460 < x < 1640 and 840 < y < 960):
+            trees.append((x, y, rnd.uniform(13, 24)))
+    out.append('<g>' + "".join(f'<circle cx="{x + 5:.0f}" cy="{y + 6:.0f}" r="{r:.0f}" fill="#0E3B1E" opacity=".45"/>' for x, y, r in trees) + '</g>')
+    out.append('<g>' + "".join(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{r:.0f}" fill="url(#tree)"/>' for x, y, r in trees) + '</g>')
+    for i, (a, c, b, par, yds, *_rest) in enumerate(HOLES):
+        w = 44 if par > 3 else 36
+        out.append(f'<path d="M{a[0]} {a[1]} Q{c[0]} {c[1]} {b[0]} {b[1]}" fill="none" stroke="url(#fw)" stroke-width="{w}" stroke-linecap="round"/>')
+        # bunkers by the green
+        bx, by = b[0] + (28 if i % 2 else -30), b[1] + (26 if i % 3 else -28)
+        out.append(f'<ellipse cx="{bx}" cy="{by}" rx="17" ry="10" transform="rotate({rnd.randint(-40, 40)} {bx} {by})" fill="#EADFBF" stroke="#D3C59C" stroke-width="2"/>')
+        mx, my = qpt(a, c, b, .55)
+        if par > 3:
+            out.append(f'<ellipse cx="{mx + (24 if i % 2 else -22):.0f}" cy="{my + 18:.0f}" rx="14" ry="8" fill="#EADFBF" stroke="#D3C59C" stroke-width="2"/>')
+        out.append(f'<circle cx="{b[0]}" cy="{b[1]}" r="34" fill="#3F9150"/><circle cx="{b[0]}" cy="{b[1]}" r="28" fill="url(#grn)"/>')
+        out.append(f'<rect x="{a[0] - 14}" y="{a[1] - 9}" width="28" height="18" rx="4" fill="#6CBF78" stroke="#3F9150" stroke-width="2"/>')
+        out.append(f'<g class="pin"><line x1="{b[0]}" y1="{b[1]}" x2="{b[0]}" y2="{b[1] - 34}" stroke="#fff" stroke-width="2.5"/>'
+                   f'<path d="M{b[0] + 1} {b[1] - 34} l18 5 l-18 6 z" fill="#D21F25"/><ellipse cx="{b[0]}" cy="{b[1]}" rx="4" ry="2.5" fill="#0B2A17"/></g>')
+        out.append(f'<g class="tee-no"><circle cx="{a[0]}" cy="{a[1] - 30}" r="15" fill="#fff" stroke="#004225" stroke-width="3"/>'
+                   f'<text x="{a[0]}" y="{a[1] - 25}" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="15" fill="#004225">{i + 1}</text></g>')
+        out.append(f'<path class="shot" d="M{a[0]} {a[1]} Q{c[0]} {c[1]} {b[0]} {b[1]}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round" pathLength="1000"/>')
+    # clubhouse
+    out.append('<g><rect x="1478" y="868" width="110" height="64" fill="#F2EEE3" stroke="#004225" stroke-width="3"/><path d="M1468 870 L1533 826 L1598 870 Z" fill="#004225"/>'
+               '<rect x="1522" y="896" width="22" height="36" fill="#004225"/><rect x="1490" y="884" width="20" height="16" fill="#9CC3E0"/><rect x="1556" y="884" width="20" height="16" fill="#9CC3E0"/></g>')
+    out.append('<circle class="cmball" r="7" fill="#fff" stroke="#1B1B1B" stroke-width="1.5" cx="110" cy="240"/>')
+    out.append('</svg>')
+    return "".join(out)
+
+
+def course_section():
+    cards = "".join(
+        f'<a class="ccard" href="{link}" data-i="{i}"><span class="cno">Hole {i + 1} · Par {par} · {yds} yds</span><b>{title}</b><span>{line}</span><span class="cgo">Play this hole →</span></a>'
+        for i, (_, _, _, par, yds, title, line, link) in enumerate(HOLES))
+    data = json.dumps([[a, c, b] for a, c, b, *_ in HOLES])
+    return (f'<section class="scene scene-course" data-scene="course" data-pin-all style="--len:520vh" data-holes=\'{data}\'>'
+            '<div class="scene-pin course-pin">'
+            f'<div class="course-head rail-head wrap"><div class="hole">{FLAG}<span class="eyebrow">Hole 5 · The back nine</span></div><h2>Walk the course</h2>'
+            '<p class="sub">Scroll to play nine holes. Each one is a part of Honest Handicap.</p></div>'
+            f'{course_svg()}<div class="ccards">{cards}</div><div class="cprog" aria-hidden="true"></div></div></section>')
+
+
+RANGE = ('<section class="s range-sec"><div class="wrap">'
+         '<div class="shead rv-up"><div><div class="hole">{{FLAG}}<span class="eyebrow">Hole 7 · The range</span></div><h2>Hit a bucket</h2>'
+         '<p class="sub">Tap (or press space) to start the swing, again to set the power, and once more on the line to strike it. Best carries are kept on this device.</p></div></div>'
+         '<div class="range" data-range>'
+         '<div class="range-top"><div class="range-clubs" role="group" aria-label="Club">'
+         '<button type="button" data-club="driver" aria-pressed="true">Driver</button><button type="button" data-club="iron" aria-pressed="false">7-iron</button><button type="button" data-club="wedge" aria-pressed="false">Wedge</button></div>'
+         '<div class="range-best">Best: <b data-best>none yet</b></div></div>'
+         '<canvas class="rangegame" tabindex="0" role="application" aria-label="Driving range game. Press space or tap three times: start the swing, set the power, then strike on the line."></canvas>'
+         '<div class="range-ui"><span class="range-msg" aria-live="polite">Tap the range to start your swing</span><button type="button" class="range-hit">Swing</button></div>'
+         '</div></div></section>')
 
 PUTT = ('<div class="putt-wrap {cls}"><canvas class="puttgame" tabindex="0" role="application" '
         'aria-label="Putting game. Drag back from the ball and let go to putt, or use the arrow keys to aim and set the pace and press Enter."></canvas>'
@@ -442,7 +553,7 @@ def review_jsonld(r):
 # ---------------------------------------------------------------- pages
 def fill(body):
     aff = CFG.get("affiliates") or []
-    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS).replace("{{BAG}}", BAG).replace("{{CARDSCENE}}", CARDSCENE).replace("{{FINDER}}", FINDER.replace("{{FLAG}}", FLAG)).replace("{{STATS}}", stats_band()).replace("{{PUTTLG}}", PUTT.format(cls="lg")).replace("{{LATESTBAND}}", vband("aerial.mp4", "aerial.jpg", '<div class="hole">' + FLAG + '<span class="eyebrow">Hole 1 · Par 4</span></div><h2>Latest reviews</h2><a class="btn btn-line btn-sm" href="/reviews/">See all reviews<span class="gb"></span></a>'))
+    return (body.replace("{{FLAG}}", FLAG).replace("{{CIRCLE}}", CIRCLE).replace("{{CUP}}", CUP).replace("{{STEPS}}", STEPS).replace("{{BAG}}", BAG).replace("{{CARDSCENE}}", CARDSCENE).replace("{{FINDER}}", FINDER.replace("{{FLAG}}", FLAG)).replace("{{STATS}}", stats_band()).replace("{{KIT3D}}", kit3d_home()).replace("{{COURSE}}", course_section()).replace("{{RANGE}}", RANGE.replace("{{FLAG}}", FLAG)).replace("{{PUTTLG}}", PUTT.format(cls="lg")).replace("{{LATESTBAND}}", vband("aerial.mp4", "aerial.jpg", '<div class="hole">' + FLAG + '<span class="eyebrow">Hole 1 · Par 4</span></div><h2>Latest reviews</h2><a class="btn btn-line btn-sm" href="/reviews/">See all reviews<span class="gb"></span></a>'))
             .replace("{{CARDS3}}", cards(REVIEWS[:3]))
             .replace("{{KIT}}", "".join(f'<a href="/reviews/{k}/">{icon(k)}{CAT[k]["name"]}</a>' for k in CAT))
             .replace("{{TESTERS}}", testers_block())
@@ -480,7 +591,7 @@ for k in CAT:
     noun = CAT[k]["noun"]
     add(f"/reviews/{k}/", "reviews", f'{noun[0].upper() + noun[1:]} reviews by club golfers | Honest Handicap',
         f'Honest {noun} reviews from real club golfers, with each tester\'s handicap, home course and rounds played on the card.',
-        vband("aerial.mp4", "aerial.jpg", f'<div class="hole">{FLAG}<span class="eyebrow">The full card</span></div><h1>{noun[0].upper() + noun[1:]} reviews</h1><p class="sub">Every {noun} our testers have played with, scored on the same card.</p>', "top")
+        vband("aerial.mp4", "aerial.jpg", f'<div class="hole">{FLAG}<span class="eyebrow">The full card</span></div><h1>{noun[0].upper() + noun[1:]} reviews</h1><p class="sub">Every {noun} our testers have played with, scored on the same card.</p>' + kit3d_mini(k), "top" + (" has3d" if k in K3CAT else ""))
         + f'<section class="s" style="padding-top:34px"><div class="wrap">{filters(k)}{likeme(rows)}<div class="cards">{cards(rows, k)}</div></div></section>',
         index=bool(rows), lastmod=max([str(r.get("updated_at") or r["published_at"])[:10] for r in rows] or [str(TODAY)]), cur="reviews")
 
@@ -505,7 +616,7 @@ add("/404.html", "lost", "Lost ball | Honest Handicap", "That page is in the rou
 
 # ---------------------------------------------------------------- render
 LAYOUT = read(SRC, "layout.html")
-CSS, JS = read(SRC, "site.css"), read(SRC, "site.js")
+CSS, JS = read(SRC, "site.css"), read(SRC, "site.js") + "\n" + read(SRC, "round3.js")
 ICON = read(BRAND, "icon.svg")
 LOGO, LOGOFOOT = svg_inline("logo-dark.svg", "Honest Handicap"), svg_inline("logo-dark.svg", "Honest Handicap", "lg")
 

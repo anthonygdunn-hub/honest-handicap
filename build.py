@@ -669,6 +669,10 @@ def build_site():
     shutil.copy(os.path.join(BRAND, "icon.svg"), os.path.join(OUT, "favicon.svg"))
     for f in ("og.png", "apple-touch-icon.png"):
         shutil.copy(os.path.join(BRAND, f), os.path.join(OUT, f))
+    # Google Search Console ownership files (verify/google*.html), served from the site root
+    vdir = os.path.join(HERE, "verify")
+    for f in (os.listdir(vdir) if os.path.isdir(vdir) else []):
+        shutil.copy(os.path.join(vdir, f), os.path.join(OUT, f))
     live = CFG.get("live")
     urls = [p for p in PAGES if p["index"] and p["path"] != "/404.html"]
     open(os.path.join(OUT, "sitemap.xml"), "w").write(
